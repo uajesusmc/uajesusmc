@@ -1,0 +1,81 @@
+{
+  "name": "meif-eventos",
+  "productName": "MEIF Eventos",
+  "version": "1.0.0",
+  "description": "Plataforma de escritorio para organizar los eventos anuales de MEIF – Sabanalarga",
+  "author": "MEIF - SABANALARGA",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.electron.json && tsc --noEmit -p tsconfig.json && vite build",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "e2e": "node tests/e2e.mjs",
+    "dist:win": "npm run build && electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "co.meif.eventos",
+    "productName": "MEIF Eventos",
+    "copyright": "MEIF - SABANALARGA",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MEIF Eventos",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "MEIF-Eventos-Setup-${version}.exe"
+    },
+    "publish": null
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.15.2",
+    "qrcode": "^1.5.4",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.1",
+    "@types/pdfkit": "^0.13.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^0.460.0",
+    "playwright-core": "^1.49.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

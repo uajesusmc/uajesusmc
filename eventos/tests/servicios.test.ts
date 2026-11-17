@@ -1,0 +1,177 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import ExcelJS from 'exceljs';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { Aplicacion } from '../electron/ipc';
+import * as agenda from '../electron/services/agenda';
+import * as asistencia from '../electron/services/asistencia';
+import * as auth from '../electron/services/auth';
+import * as certificados from '../electron/services/certificados';
+import { fechaISO, type Contexto } from '../electron/services/comun';
+import * as config from '../electron/services/config';
+import * as datos from '../electron/services/datos';
+import * as reportes from '../electron/services/reportes';
+import * as respaldo from '../electron/services/respaldo';
+
+const dias = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return fechaISO(d); };
+let app: Aplicacion;
+let ctx: Contexto;
+
+beforeEach(async () => {
+  app = new Aplicacion(fs.mkdtempSync(path.join(os.tmpdir(), 'ev-')));
+  ctx = await app.abrir();
+  auth.crearPrimerAdministrador(ctx, { usuario: 'admin', nombre: 'Admin', clave: 'Clave2027' });
+  config.escribirConfig(ctx.db, 'director_nombre', 'Directora');
+});
+
+function evento(extra: Record<string, unknown> = {}) {
+  return datos.guardar(ctx, 'eventos', {
+    nombre: 'Olimpiada de Matemáticas 2026', tipo: 'Olimpiada', modalidad: 'Presencial', fecha_inicio: dias(-3), fecha_fin: dias(2),
+    lugar: 'Coliseo', estado: 'En curso', asistencia_minima: 60, ...extra,
+  });
+}
+const participante = (id: string) => datos.guardar(ctx, 'participantes', { tipo_documento: 'TI', identificacion: id, nombres: 'Ana', apellidos: `Prueba ${id}` });
+const ponente = (id: string) => datos.guardar(ctx, 'ponentes', { identificacion: id, nombres: 'Luis', apellidos: `Polo ${id}` });
+const act = (ev: number, extra: Partial<agenda.DatosActividad> = {}): agenda.DatosActividad => ({
+  evento_id: ev, titulo: 'Taller de funciones', tipo: 'Taller', area: 'Matemáticas', fecha: dias(-1), hora_inicio: '08:00', hora_fin: '10:00', lugar: 'Aula 1', ...extra,
+});
+
+describe('Eventos y banner', () => {
+  it('guarda eventos por año y valida fechas', () => {
+    const id = evento();
+    expect(datos.obtener(ctx, 'eventos', id).anio).toBe(Number(dias(-3).slice(0, 4)));
+    expect(() => evento({ fecha_inicio: dias(5), fecha_fin: dias(1) })).toThrow(/anterior/);
+    expect(() => evento({ nombre: '' })).toThrow(/obligatorio/);
+  });
+
+  it('actualiza el banner con la foto inaugural del evento', () => {
+    const e1 = evento();
+    const e2 = evento({ nombre: 'Feria de la ciencia', tipo: 'Feria de la ciencia' });
+    const foto = path.join(ctx.rutas.datos, 'inauguracion.jpg');
+    fs.writeFileSync(foto, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]));
+    expect(config.bannerActual(ctx)).toBeNull();
+    config.guardarFotoEvento(ctx, e1, foto);
+    expect(config.bannerActual(ctx)!.id).toBe(e1);
+    expect(config.bannerActual(ctx)!.imagen.startsWith('data:image/jpeg;base64,')).toBe(true);
+    config.guardarFotoEvento(ctx, e2, foto);
+    expect(config.bannerActual(ctx)!.nombre).toBe('Feria de la ciencia');
+    config.fijarBanner(ctx, e1);
+    expect(config.bannerActual(ctx)!.id).toBe(e1);
+    config.guardarFotoEvento(ctx, e1, null);
+    expect(config.bannerActual(ctx)!.id).toBe(e2);
+    const txt = path.join(ctx.rutas.datos, 'x.txt');
+    fs.writeFileSync(txt, 'x');
+    expect(() => config.guardarFotoEvento(ctx, e1, txt)).toThrow(/JPG o PNG/);
+  });
+});
+
+describe('Participantes e inscripciones', () => {
+  it('no duplica identificaciones y respeta el cupo', () => {
+    const ev = evento({ cupo: 1 });
+    const a = participante('1001');
+    const b = participante('1002');
+    expect(() => participante('1001')).toThrow(/Ya existe/);
+    expect(datos.inscribir(ctx, ev, [a, b])).toEqual({ inscritos: 1, omitidos: [expect.stringMatching(/cupo/)] });
+  });
+
+  it('importa desde Excel con vista previa', async () => {
+    const ev = evento();
+    participante('2002');
+    const f = path.join(ctx.rutas.datos, 'p.xlsx');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('P');
+    ws.addRow(['Identificación', 'Nombres', 'Apellidos', 'Grado']);
+    ws.addRow(['2001', 'Sofía', 'Charris', '11']);
+    ws.addRow(['2002', 'Ya', 'Existe', '']);
+    ws.addRow(['2003', '', 'Sin nombre', '']);
+    await wb.xlsx.writeFile(f);
+    const sim = await datos.importar(ctx, f, { eventoId: ev, simular: true });
+    expect(sim.filas.map((x) => x.estado)).toEqual(['nuevo', 'existente', 'error']);
+    expect(datos.listar(ctx, 'participantes')).toHaveLength(1);
+    const r = await datos.importar(ctx, f, { eventoId: ev, simular: false });
+    expect(r.creados).toBe(1);
+    expect(r.inscritos).toBe(2);
+    expect(datos.inscritos(ctx, ev).find((i) => i.identificacion === '2001')!.grado).toBe('11°');
+  });
+});
+
+describe('Agenda', () => {
+  it('detecta cruces de ponente y lugar, y fechas fuera del evento', () => {
+    const ev = evento();
+    const p = ponente('3001');
+    agenda.guardar(ctx, act(ev, { ponente_id: p }));
+    expect(agenda.verificar(ctx, act(ev, { titulo: 'Otra', ponente_id: p, lugar: 'Aula 2', hora_inicio: '09:00', hora_fin: '11:00' })).errores[0]).toMatch(/Cruce del ponente/);
+    expect(agenda.verificar(ctx, act(ev, { titulo: 'Otra', hora_inicio: '09:30', hora_fin: '10:30' })).errores[0]).toMatch(/lugar/);
+    expect(agenda.verificar(ctx, act(ev, { titulo: 'Otra', fecha: dias(30) })).errores[0]).toMatch(/fuera del evento/);
+    expect(agenda.verificar(ctx, act(ev, { titulo: 'Contigua', ponente_id: p, hora_inicio: '10:00', hora_fin: '12:00' })).errores).toHaveLength(0);
+    expect(() => agenda.guardar(ctx, act(ev))).toThrow(/duplicada/);
+  });
+});
+
+describe('Asistencia y certificados', () => {
+  it('certifica solo a quienes cumplen la asistencia y verifica el QR', async () => {
+    const ev = evento();
+    const [a, b] = [participante('4001'), participante('4002')];
+    datos.inscribir(ctx, ev, [a, b]);
+    const ids = [
+      agenda.guardar(ctx, act(ev, { titulo: 'Inauguración', tipo: 'Ceremonia', hora_inicio: '07:00', hora_fin: '08:00' })),
+      agenda.guardar(ctx, act(ev)),
+      agenda.guardar(ctx, act(ev, { titulo: 'Receso', tipo: 'Receso', hora_inicio: '10:00', hora_fin: '10:30' })),
+    ];
+    expect(agenda.horasEvento(ctx, ev)).toBe(3);
+    asistencia.registrar(ctx, ids[0], [{ participante_id: a, presente: true }, { participante_id: b, presente: true }]);
+    asistencia.registrar(ctx, ids[1], [{ participante_id: a, presente: true }, { participante_id: b, presente: false }]);
+    expect(() => asistencia.registrar(ctx, ids[2], [])).toThrow(/recesos/);
+    const r = asistencia.resumenEvento(ctx, ev);
+    expect(r.find((x) => x.participante_id === a)).toMatchObject({ asistidas: 1 + 1, porcentaje: 100, horas: 3, aprueba: true });
+    expect(r.find((x) => x.participante_id === b)).toMatchObject({ porcentaje: 50, aprueba: false });
+
+    const g = await certificados.generar(ctx, ev, [a, b]);
+    expect(g.generados).toHaveLength(1);
+    expect(g.omitidos[0].motivo).toMatch(/50%/);
+    expect(fs.readFileSync(path.join(ctx.rutas.certificados, `${g.generados[0].codigo}.pdf`)).subarray(0, 4).toString()).toBe('%PDF');
+    expect((await certificados.generar(ctx, ev, [a])).omitidos[0].motivo).toMatch(/vigente/);
+    const c = ctx.db.get('SELECT * FROM certificados WHERE participante_id = ?', [a]);
+    expect(certificados.verificar(ctx, `MEIF-EVENTOS|${c.codigo}|4001|3|${c.firma_hash}`).estado).toBe('valido');
+    expect(certificados.verificar(ctx, `MEIF-EVENTOS|${c.codigo}|4001|30|${c.firma_hash}`).estado).toBe('alterado');
+    const re = await certificados.generar(ctx, ev, [a], 'Corrección de nombre');
+    expect(re.generados).toHaveLength(1);
+    expect(certificados.verificar(ctx, c.codigo).estado).toBe('anulado');
+  });
+});
+
+describe('Reportes, seguridad y respaldos', () => {
+  it('exporta todos los reportes en PDF y Excel', async () => {
+    const ev = evento();
+    datos.inscribir(ctx, ev, [participante('5001')]);
+    agenda.guardar(ctx, act(ev, { ponente_id: ponente('5101') }));
+    for (const r of reportes.REPORTES) {
+      for (const f of ['pdf', 'xlsx'] as const) {
+        const d = path.join(ctx.rutas.datos, `${r.id}.${f}`);
+        await reportes.exportar(ctx, reportes.construir(ctx, r.id, { eventoId: ev, anio: new Date().getFullYear() }), f, d);
+        expect(fs.statSync(d).size).toBeGreaterThan(500);
+      }
+    }
+    expect(reportes.panel(ctx, Number(dias(-3).slice(0, 4))).kpis.eventos).toBe(1);
+  });
+
+  it('usuarios de solo consulta no pueden modificar', () => {
+    auth.guardarUsuario(ctx, { usuario: 'lector', nombre: 'Lector', rol: 'consulta', clave: 'Lector2027' });
+    auth.iniciarSesion(ctx, 'lector', 'Lector2027');
+    expect(() => evento()).toThrow(/solo consulta/);
+    expect(() => auth.listarUsuarios(ctx)).toThrow(/administrador/);
+  });
+
+  it('persiste, respalda y restaura', async () => {
+    evento();
+    const dir = respaldo.crear(ctx, 'manual');
+    evento({ nombre: 'Segundo' });
+    app.cerrar();
+    ctx = await app.abrir();
+    expect(ctx.db.valor('SELECT count(*) FROM eventos')).toBe(2);
+    auth.iniciarSesion(ctx, 'admin', 'Clave2027');
+    ctx = await app.restaurar(dir);
+    expect(ctx.db.valor('SELECT count(*) FROM eventos')).toBe(1);
+  });
+});
