@@ -1,7 +1,9 @@
 /** Reportes tabulares en PDF con encabezado institucional y paginación. */
 import fs from 'node:fs';
 import PDFDocument from 'pdfkit';
-import { dibujarLogo, texto } from './comun';
+import { texto } from './comun';
+import { dibujarMembrete, piesEnTodas } from './membrete';
+import { dibujarFirma, type FirmaDoc } from './certificado';
 
 export interface ColumnaReporte { key: string; label: string; align?: 'left' | 'right' | 'center'; ancho?: number }
 export interface Reporte {
@@ -18,7 +20,7 @@ const fmt = (v: any): string => {
   return texto(v);
 };
 
-export function generarReportePdf(destino: string, r: Reporte, config: Record<string, string>, logo: string | null, generadoPor: string): Promise<void> {
+export function generarReportePdf(destino: string, r: Reporte, config: Record<string, string>, logo: string | null, generadoPor: string, firmas: FirmaDoc[] = []): Promise<void> {
   const horizontal = r.columnas.length > 6;
   const doc = new PDFDocument({ size: 'LETTER', layout: horizontal ? 'landscape' : 'portrait', margin: 36, bufferPages: true, info: { Title: r.titulo, Author: config.org_nombre } });
   const stream = fs.createWriteStream(destino);
@@ -55,14 +57,11 @@ export function generarReportePdf(destino: string, r: Reporte, config: Record<st
     : minimos.map((m, i) => m + (extra[i] / sumaExtra) * (ancho - sumaMin));
 
   const encabezado = () => {
-    dibujarLogo(doc, logo, 36 + 20, 36 + 20, 40, P, S);
-    doc.fillColor(P).font('Helvetica-Bold').fontSize(13).text(texto(config.org_nombre), 86, 38, { width: ancho - 50 });
-    doc.fillColor('#4A5568').font('Helvetica').fontSize(8.5).text(texto(config.org_subtitulo), 86, doc.y, { width: ancho - 50 });
-    doc.fillColor('#1A202C').font('Helvetica-Bold').fontSize(11.5).text(texto(r.titulo), 86, doc.y + 3, { width: ancho - 50 });
-    if (r.subtitulo) doc.fillColor('#4A5568').font('Helvetica').fontSize(8).text(texto(r.subtitulo), 86, doc.y, { width: ancho - 50 });
-    const y = Math.max(doc.y + 6, 82);
-    doc.moveTo(36, y).lineTo(W - 36, y).lineWidth(1.5).stroke(S);
-    return y + 6;
+    let y = dibujarMembrete(doc, config, logo, 36);
+    doc.fillColor('#1A202C').font('Helvetica-Bold').fontSize(12).text(texto(r.titulo), 36, y, { width: ancho });
+    if (r.subtitulo) doc.fillColor('#4A5568').font('Helvetica').fontSize(8).text(texto(r.subtitulo), 36, doc.y + 1, { width: ancho });
+    y = doc.y + 8;
+    return y;
   };
 
   const filaEncabezado = (y: number) => {
@@ -82,7 +81,7 @@ export function generarReportePdf(destino: string, r: Reporte, config: Record<st
     doc.font(negrita ? 'Helvetica-Bold' : 'Helvetica').fontSize(8);
     const valores = r.columnas.map((c) => fmt(f[c.key]));
     const alto = Math.max(...valores.map((v, i) => doc.heightOfString(v || ' ', { width: anchos[i] - 6 }))) + 6;
-    if (y + alto > H - 50) {
+    if (y + alto > H - 56) {
       doc.addPage();
       y = filaEncabezado(encabezado());
       doc.font(negrita ? 'Helvetica-Bold' : 'Helvetica').fontSize(8);
@@ -103,16 +102,18 @@ export function generarReportePdf(destino: string, r: Reporte, config: Record<st
   r.filas.forEach((f, i) => dibujarFila(f, i, !!f._negrita));
   if (r.totales) dibujarFila(r.totales, 0, true);
 
-  // Pie de página con numeración
-  const generado = `Generado el ${new Date().toLocaleString('es-CO')} por ${generadoPor} · ${r.filas.length} registro(s)`;
-  const rango = doc.bufferedPageRange();
-  for (let i = 0; i < rango.count; i++) {
-    doc.switchToPage(i);
-    doc.page.margins.bottom = 0; // evita que el pie genere páginas en blanco
-    doc.font('Helvetica').fontSize(7).fillColor('#718096');
-    doc.text(texto(generado), 36, H - 30, { width: ancho - 80, lineBreak: false });
-    doc.text(`Página ${i + 1} de ${rango.count}`, W - 136, H - 30, { width: 100, align: 'right', lineBreak: false });
+  // Bloque de firmas al final del documento
+  if (firmas.length) {
+    if (y + 110 > H - 56) { doc.addPage(); y = encabezado(); }
+    const anchoF = 180;
+    const sep = 60;
+    const total = firmas.length * anchoF + (firmas.length - 1) * sep;
+    const yF = y + 85;
+    firmas.forEach((f, i) => dibujarFirma(doc, f, W / 2 - total / 2 + i * (anchoF + sep), yF, anchoF));
   }
+
+  // Pie institucional con numeración en todas las páginas
+  piesEnTodas(doc, config, `Generado el ${new Date().toLocaleString('es-CO')} por ${generadoPor} · ${r.filas.length} registro(s)`, 36);
   doc.end();
   return new Promise((res, rej) => { stream.on('finish', () => res()); stream.on('error', rej); });
 }

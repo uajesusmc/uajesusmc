@@ -6,6 +6,7 @@ import { auditar, DURACION_SQL, ErrorNegocio, hoy, redondear, requerirSesion, ty
 import { leerConfig, rutaImagen } from './config';
 import { listar as listarCertificados } from './certificados';
 import { horarioDocentes } from './organizacion';
+import { paraDocumentos } from './firmas';
 
 export interface Filtros { eventoId?: number | null; anio?: number | null; ponenteId?: number | null }
 
@@ -165,7 +166,7 @@ export function construir(ctx: Contexto, id: string, f: Filtros): Reporte {
 export async function exportar(ctx: Contexto, r: Reporte, formato: 'pdf' | 'xlsx', destino: string) {
   requerirSesion(ctx);
   const cfg = leerConfig(ctx.db);
-  if (formato === 'pdf') await generarReportePdf(destino, r, cfg, rutaImagen(ctx, 'logo'), ctx.sesion!.nombre);
+  if (formato === 'pdf') await generarReportePdf(destino, r, cfg, rutaImagen(ctx, 'logo'), ctx.sesion!.nombre, cfg.reportes_firmas === '1' ? paraDocumentos(ctx) : []);
   else {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(r.titulo.slice(0, 31).replace(/[\\/?*[\]:]/g, ' '));

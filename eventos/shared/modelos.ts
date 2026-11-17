@@ -11,6 +11,12 @@ export const TIPOS_DOCUMENTO = ['TI', 'CC', 'RC', 'CE', 'PPT', 'Pasaporte'] as c
 export const GRADOS = ['6°', '7°', '8°', '9°', '10°', '11°', 'Egresado', 'Docente', 'Otro'] as const;
 export const ROLES = { admin: 'Administrador', organizador: 'Organizador', consulta: 'Solo consulta' } as const;
 export type Rol = keyof typeof ROLES;
+export const TIPOS_DOCUMENTO_INST = {
+  Oficio: 'OF', Constancia: 'CO', Circular: 'CI', Carta: 'CA', Comunicado: 'CM', Acta: 'AC', Invitación: 'IN',
+} as const;
+export type TipoDocumentoInst = keyof typeof TIPOS_DOCUMENTO_INST;
+export const FIRMANTES = { presidente: 'Presidente(a)', secretario: 'Secretario(a)' } as const;
+export type Firmante = keyof typeof FIRMANTES;
 
 export type TipoCampo = 'text' | 'textarea' | 'number' | 'date' | 'email' | 'tel' | 'select';
 export interface Campo {
@@ -70,9 +76,17 @@ export const MODELOS: Record<NombreModelo, { singular: string; plural: string; c
 export const CONFIG_POR_DEFECTO: Record<string, string> = {
   org_nombre: 'MEIF – SABANALARGA',
   org_subtitulo: 'Matemáticas, Estadística, Informática y Física',
+  org_lema: '',
+  org_nit: '',
+  org_direccion: '',
+  org_telefono: '',
+  org_correo: '',
   lugar_expedicion: 'Sabanalarga, Atlántico',
-  director_nombre: '',
-  director_cargo: 'Director(a)',
+  presidente_nombre: '',
+  presidente_cargo: 'Presidente(a) MEIF',
+  secretario_nombre: '',
+  secretario_cargo: 'Secretario(a) MEIF',
+  reportes_firmas: '1',
   cert_titulo: 'CERTIFICADO DE PARTICIPACIÓN',
   cert_texto: 'Por su participación en el evento «{evento}», realizado del {fecha_inicio} al {fecha_fin} en {lugar}, con una intensidad de {horas} horas.',
   cert_color_primario: '#0B2545',

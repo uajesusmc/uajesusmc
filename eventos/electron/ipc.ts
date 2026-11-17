@@ -10,6 +10,8 @@ import { ErrorNegocio, requerirAdmin, requerirEdicion, requerirSesion, type Cont
 import * as config from './services/config';
 import * as datos from './services/datos';
 import * as org from './services/organizacion';
+import * as firmas from './services/firmas';
+import * as documentos from './services/documentos';
 import * as reportes from './services/reportes';
 import * as respaldo from './services/respaldo';
 
@@ -139,6 +141,29 @@ export function crearRutas(app: Aplicacion, ui: Dialogos, version: string): Reco
       return !!r;
     },
     'config.quitarImagen': (ctx, a) => { config.guardarImagen(ctx, a.imagen, null); return true; },
+
+    'documentos.listar': (ctx, a) => documentos.listar(ctx, a ?? {}),
+    'documentos.obtener': (ctx, a) => documentos.obtener(ctx, a.id),
+    'documentos.crear': (ctx, a) => documentos.crear(ctx, a),
+    'documentos.anular': (ctx, a) => { documentos.anular(ctx, a.id); return true; },
+    'documentos.ver': async (ctx, a) => { await ui.mostrarPdf(await documentos.archivo(ctx, a.id)); return true; },
+    'documentos.guardar': async (ctx, a) => {
+      const o = await documentos.archivo(ctx, a.id);
+      const d = await ui.guardarArchivo('Guardar documento', path.basename(o), [{ name: 'PDF', extensions: ['pdf'] }]);
+      if (d) fs.copyFileSync(o, d);
+      return d;
+    },
+    'membrete.vistaPrevia': async (ctx) => { await ui.mostrarPdf(await documentos.vistaPrevia(ctx)); return true; },
+
+    'firmas.estado': (ctx) => firmas.estado(ctx),
+    'firmas.subir': async (ctx, a) => {
+      const r = await ui.abrirArchivo('Seleccione la imagen de la firma (PNG con fondo transparente o JPG sobre fondo blanco)', IMG);
+      if (!r) return false;
+      firmas.subir(ctx, a.firmante, r);
+      return true;
+    },
+    'firmas.quitar': (ctx, a) => { firmas.subir(ctx, a.firmante, null); return true; },
+    'firmas.datos': (ctx, a) => { firmas.datos(ctx, a.firmante, a); return true; },
 
     'banner.actual': (ctx) => config.bannerActual(ctx),
     'banner.cambiarFoto': async (ctx, a) => {

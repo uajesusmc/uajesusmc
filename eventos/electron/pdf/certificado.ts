@@ -10,7 +10,19 @@ export interface DatosCertificado {
 
 const h = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));
 
-export function dibujarCertificado(doc: PDFKit.PDFDocument, d: DatosCertificado, cfg: Record<string, string>, logo: string | null, firma: string | null) {
+export interface FirmaDoc { nombre: string; cargo: string; imagen: string | null }
+
+/** Bloque de firma: imagen sobre la línea, nombre y cargo debajo. */
+export function dibujarFirma(doc: PDFKit.PDFDocument, f: FirmaDoc, x: number, y: number, ancho: number) {
+  if (f.imagen) {
+    try { doc.image(f.imagen, x + ancho / 2 - 70, y - 46, { fit: [140, 44], align: 'center', valign: 'bottom' }); } catch { /* imagen inválida */ }
+  }
+  doc.moveTo(x, y).lineTo(x + ancho, y).lineWidth(0.8).stroke('#2D3748');
+  doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1A202C').text(texto(f.nombre), x, y + 4, { width: ancho, align: 'center' });
+  doc.font('Helvetica').fontSize(8.5).fillColor('#4A5568').text(texto(f.cargo), x, doc.y, { width: ancho, align: 'center' });
+}
+
+export function dibujarCertificado(doc: PDFKit.PDFDocument, d: DatosCertificado, cfg: Record<string, string>, logo: string | null, firmas: FirmaDoc[]) {
   const P = cfg.cert_color_primario || '#0B2545';
   const S = cfg.cert_color_secundario || '#C9A227';
   const W = doc.page.width;
@@ -63,12 +75,14 @@ export function dibujarCertificado(doc: PDFKit.PDFDocument, d: DatosCertificado,
   }
   doc.font('Helvetica').fontSize(10).fillColor('#2D3748').text(texto(`Expedido en ${cfg.lugar_expedicion}, el ${d.fechaEmision}.`), 60, y + 2, { width: W - 120, align: 'center' });
 
-  const yF = H - 110;
-  const xF = cx - 95 - 40;
-  if (firma) { try { doc.image(firma, xF + 35, yF - 42, { fit: [120, 40], align: 'center', valign: 'bottom' }); } catch { /* sin firma */ } }
-  doc.moveTo(xF, yF).lineTo(xF + 190, yF).lineWidth(0.8).stroke('#2D3748');
-  doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1A202C').text(texto(cfg.director_nombre || '______________________'), xF, yF + 4, { width: 190, align: 'center' });
-  doc.font('Helvetica').fontSize(8.5).fillColor('#4A5568').text(texto(cfg.director_cargo), xF, doc.y, { width: 190, align: 'center' });
+  // Firmas del Presidente y del Secretario (las que estén configuradas)
+  const yF = H - 108;
+  const anchoF = 185;
+  const sep = 45;
+  const lista = firmas.length ? firmas : [{ nombre: '______________________', cargo: '', imagen: null }];
+  const total = lista.length * anchoF + (lista.length - 1) * sep;
+  const x0 = cx - total / 2 - 45; // desplazado a la izquierda para dejar espacio al QR
+  lista.forEach((f, i) => dibujarFirma(doc, f, x0 + i * (anchoF + sep), yF, anchoF));
 
   const q = 74;
   const xq = W - 58 - q;

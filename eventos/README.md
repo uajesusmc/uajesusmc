@@ -18,6 +18,8 @@ Saber 11°, ferias de la ciencia, seminarios y talleres.
 | **Ponentes y docentes** | Conferencistas y talleristas que se asignan a la agenda. |
 | **Asistencia** | Lista de chequeo por actividad. Calcula porcentaje y horas por participante. |
 | **Certificados** | PDF con logotipo, firma, **código único y QR**. Se emiten solo a quienes cumplen la asistencia mínima, sin duplicados (la reemisión exige autorización y anula el anterior). Verificación de autenticidad por código o foto del QR. |
+| **Documentos institucionales** | Oficios, constancias, circulares, cartas, comunicados, actas e invitaciones sobre el **membrete** de MEIF, con consecutivo anual y las **firmas del Presidente y del Secretario**. |
+| **Membrete y firmas** | Encabezado institucional configurable (logo, nombre, lema, NIT, dirección, teléfono, correo, colores) con vista previa en vivo. Cada firmante (Presidente y Secretario) sube su propia firma desde «Mi firma»; se imprime en certificados y documentos. |
 | **Reportes** | Eventos del año, inscritos (con columna de firma), agenda, asistencia, certificados y ponentes, en **PDF y Excel**. |
 | **Configuración** | Datos de la organización, texto y colores del certificado, logotipo, firma, **usuarios** (Administrador, Organizador, Solo consulta), **copias de seguridad** y papelera. |
 

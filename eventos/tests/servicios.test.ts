@@ -12,6 +12,8 @@ import { fechaISO, type Contexto } from '../electron/services/comun';
 import * as config from '../electron/services/config';
 import * as datos from '../electron/services/datos';
 import * as org from '../electron/services/organizacion';
+import * as firmas from '../electron/services/firmas';
+import * as documentos from '../electron/services/documentos';
 import * as reportes from '../electron/services/reportes';
 import * as respaldo from '../electron/services/respaldo';
 
@@ -23,7 +25,7 @@ beforeEach(async () => {
   app = new Aplicacion(fs.mkdtempSync(path.join(os.tmpdir(), 'ev-')));
   ctx = await app.abrir();
   auth.crearPrimerAdministrador(ctx, { usuario: 'admin', nombre: 'Admin', clave: 'Clave2027' });
-  config.escribirConfig(ctx.db, 'director_nombre', 'Directora');
+  config.escribirConfig(ctx.db, 'presidente_nombre', 'Presidenta MEIF');
 });
 
 function evento(extra: Record<string, unknown> = {}) {
@@ -181,6 +183,74 @@ describe('Organización: cursillos, aulas y horario de docentes', () => {
     const rep = reportes.construir(ctx, 'horario_docentes', { eventoId: ev, ponenteId: d1 });
     expect(rep.filas.at(-1)!.docente).toMatch(/^Total/);
     expect(() => org.eliminarAula(ctx, a102)).toThrow(/asignada/);
+  });
+});
+
+describe('Firmas del Presidente y del Secretario', () => {
+  const fx = (n: string) => path.join(__dirname, 'fixtures', n);
+  it('cada firmante sube su propia firma y aparece en certificados y documentos', async () => {
+    auth.guardarUsuario(ctx, { usuario: 'presidente', nombre: 'Carlos Ruiz', rol: 'consulta', clave: 'Presi2026', firmante: 'presidente' });
+    auth.guardarUsuario(ctx, { usuario: 'secretario', nombre: 'Ana Polo', rol: 'consulta', clave: 'Secre2026', firmante: 'secretario' });
+    expect(() => auth.guardarUsuario(ctx, { usuario: 'otro', nombre: 'Otro', rol: 'consulta', clave: 'Otro20260', firmante: 'presidente' })).toThrow(/ya firma como presidente/);
+
+    // El secretario sube la suya, pero no puede tocar la del presidente
+    auth.iniciarSesion(ctx, 'secretario', 'Secre2026');
+    firmas.datos(ctx, 'secretario', { nombre: 'Ana María Polo', cargo: 'Secretaria MEIF' });
+    firmas.subir(ctx, 'secretario', fx('firma-secretario.png'));
+    expect(() => firmas.subir(ctx, 'presidente', fx('firma-secretario.png'))).toThrow(/Solo el presidente/);
+    expect(() => firmas.datos(ctx, 'presidente', { nombre: 'X', cargo: 'Y' })).toThrow(/Solo el presidente/);
+    // Su rol es «solo consulta»: no puede editar eventos, pero sí su firma
+    expect(() => datos.guardar(ctx, 'eventos', { nombre: 'X' })).toThrow(/solo consulta/);
+
+    auth.iniciarSesion(ctx, 'presidente', 'Presi2026');
+    firmas.datos(ctx, 'presidente', { nombre: 'Carlos Ruiz Charris', cargo: 'Presidente MEIF' });
+    firmas.subir(ctx, 'presidente', fx('firma-presidente.png'));
+    const e = firmas.estado(ctx);
+    expect(e.map((f) => [f.firmante, !!f.imagen, f.puedeEditar])).toEqual([['presidente', true, true], ['secretario', true, false]]);
+    expect(e[1].actualizada_por).toBe('Ana Polo');
+    expect(firmas.paraDocumentos(ctx).map((f) => f.nombre)).toEqual(['Carlos Ruiz Charris', 'Ana María Polo']);
+
+    // Organizador no puede cambiar los nombres de los firmantes desde la configuración general
+    auth.iniciarSesion(ctx, 'admin', 'Clave2027');
+    config.guardarConfig(ctx, { presidente_nombre: 'Intruso', org_nombre: 'MEIF' });
+    expect(config.leerConfig(ctx.db).presidente_nombre).toBe('Carlos Ruiz Charris');
+
+    // Certificado y reporte con las dos firmas
+    const ev = evento();
+    const a = participante('7001');
+    datos.inscribir(ctx, ev, [a]);
+    const act1 = agenda.guardar(ctx, act(ev));
+    asistencia.registrar(ctx, act1, [{ participante_id: a, presente: true }]);
+    const g = await certificados.generar(ctx, ev, [a]);
+    expect(g.generados).toHaveLength(1);
+    const destino = path.join(ctx.rutas.datos, 'inscritos.pdf');
+    await reportes.exportar(ctx, reportes.construir(ctx, 'inscritos', { eventoId: ev }), 'pdf', destino);
+    expect(fs.statSync(destino).size).toBeGreaterThan(20000); // incluye las imágenes de las firmas
+
+    // Sin ninguna firma configurada no se generan certificados
+    config.escribirConfig(ctx.db, 'presidente_nombre', '');
+    config.escribirConfig(ctx.db, 'secretario_nombre', '');
+    await expect(certificados.generar(ctx, ev, [a], 'Prueba')).rejects.toThrow(/Firmas/);
+  });
+});
+
+describe('Documentos institucionales con membrete', () => {
+  it('numera por tipo y año, firma y regenera el PDF', async () => {
+    firmas.datos(ctx, 'secretario', { nombre: 'Ana Polo', cargo: 'Secretaria MEIF' });
+    firmas.subir(ctx, 'secretario', path.join(__dirname, 'fixtures', 'firma-secretario.png'));
+    config.guardarConfig(ctx, { org_nit: '900.123.456-7', org_direccion: 'Calle 20 # 18-45, Sabanalarga', org_telefono: '300 000 0000', org_correo: 'meif@ejemplo.org', org_lema: 'Ciencia para transformar' });
+    const base = { asunto: 'Invitación a la olimpiada', cuerpo: 'Párrafo uno.\n\nPárrafo dos.', firmantes: ['presidente', 'secretario'] as any, fecha: '2026-03-10' };
+    const a = await documentos.crear(ctx, { ...base, tipo: 'Oficio', destinatario: 'Rector(a)\nIE Técnica' });
+    const b = await documentos.crear(ctx, { ...base, tipo: 'Oficio' });
+    const c = await documentos.crear(ctx, { ...base, tipo: 'Constancia', firmantes: ['secretario'] as any });
+    expect([a.consecutivo, b.consecutivo, c.consecutivo]).toEqual(['MEIF-OF-2026-001', 'MEIF-OF-2026-002', 'MEIF-CO-2026-001']);
+    expect(fs.readFileSync(a.archivo).subarray(0, 4).toString()).toBe('%PDF');
+    fs.rmSync(a.archivo);
+    expect(fs.existsSync(await documentos.archivo(ctx, a.id))).toBe(true);
+    config.escribirConfig(ctx.db, 'presidente_nombre', '');
+    await expect(documentos.crear(ctx, { ...base, tipo: 'Circular' })).rejects.toThrow(/presidente/);
+    await expect(documentos.crear(ctx, { ...base, tipo: 'Circular', cuerpo: '' })).rejects.toThrow(/contenido/);
+    expect(documentos.listar(ctx, { tipo: 'Oficio' })).toHaveLength(2);
   });
 });
 

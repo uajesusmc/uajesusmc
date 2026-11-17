@@ -290,7 +290,7 @@ export function CertificadosEvento({ evento }: { evento: any }) {
   };
   return (
     <>
-      {!config.director_nombre && <div className="alerta aviso">Configure el nombre del director(a) que firma en Configuración antes de generar certificados.</div>}
+      {!config.presidente_nombre && !config.secretario_nombre && <div className="alerta aviso">Configure las firmas del Presidente y del Secretario (Configuración › Firmas) antes de generar certificados.</div>}
       <div className="alerta info">Reciben certificado los inscritos con asistencia de al menos <b>{evento.asistencia_minima}%</b> de las actividades con asistencia registrada.</div>
       {puedeEditar && (
         <div className="fila mb"><div className="espacio" />

@@ -13,6 +13,7 @@ import { dibujarCertificado } from '../pdf/certificado';
 import { resumenEvento } from './asistencia';
 import { auditar, ErrorNegocio, fechaLarga, hoy, limpiar, requerirAdmin, requerirEdicion, requerirSesion, type Contexto } from './comun';
 import { leerConfig, rutaImagen, secreto } from './config';
+import { paraDocumentos } from './firmas';
 
 const PREFIJO = 'MEIF-EVENTOS';
 
@@ -41,7 +42,7 @@ function nuevoCodigo(ctx: Contexto) {
 async function escribirPdf(ctx: Contexto, ids: number[], destino: string) {
   const cfg = leerConfig(ctx.db);
   const logo = rutaImagen(ctx, 'logo');
-  const firma = rutaImagen(ctx, 'firma_director');
+  const firmas = paraDocumentos(ctx);
   const doc = new PDFDocument({ size: 'LETTER', layout: 'landscape', margin: 0, autoFirstPage: false, info: { Title: 'Certificado', Author: cfg.org_nombre } });
   const st = fs.createWriteStream(destino);
   doc.pipe(st);
@@ -54,7 +55,7 @@ async function escribirPdf(ctx: Contexto, ids: number[], destino: string) {
       codigo: c.codigo, nombre: det.nombre, tipoDocumento: det.tipo_documento, identificacion: det.identificacion, evento: det.evento,
       lugar: det.lugar ?? '', fechaInicio: fechaLarga(det.fecha_inicio), fechaFin: fechaLarga(det.fecha_fin), fechaEmision: fechaLarga(c.fecha_emision),
       horas: c.horas, actividades: det.actividades, qr, anulado: !!c.anulado,
-    }, cfg, logo, firma);
+    }, cfg, logo, firmas);
   }
   doc.end();
   await new Promise<void>((ok, mal) => { st.on('finish', () => ok()); st.on('error', mal); });
@@ -70,7 +71,7 @@ export async function generar(ctx: Contexto, eventoId: number, participanteIds: 
   if (!participanteIds.length) throw new ErrorNegocio('Seleccione al menos un participante.');
   const motivoReemision = limpiar(autorizacion);
   if (motivoReemision && s.rol !== 'admin') throw new ErrorNegocio('Solo un administrador puede autorizar la reemisión de certificados.');
-  if (!leerConfig(ctx.db).director_nombre) throw new ErrorNegocio('Configure el nombre del director(a) que firma (Configuración).');
+  if (!paraDocumentos(ctx).length) throw new ErrorNegocio('Configure al menos la firma del Presidente o del Secretario (Configuración › Firmas).');
   const ev = ctx.db.get('SELECT * FROM eventos WHERE id = ? AND eliminado_en IS NULL', [eventoId]);
   if (!ev) throw new ErrorNegocio('Evento no encontrado.');
   const lista = elegibles(ctx, eventoId);

@@ -1,12 +1,35 @@
 # Manual de usuario – MEIF Eventos
 
+## 0. Membrete, firmas y documentos institucionales
+
+### Membrete (encabezado de los documentos)
+**Configuración › Membrete**: nombre, subtítulo, lema, NIT, dirección, teléfono, correo y colores. La vista previa
+se actualiza mientras escribe; **Vista previa en PDF** muestra una hoja de ejemplo. El membrete (encabezado con logo
+y datos de contacto, y pie con numeración) se imprime en todos los documentos: oficios, listados, agenda, horarios y reportes.
+El logotipo se carga en **Configuración › Logotipo**.
+
+### Firmas del Presidente y del Secretario
+1. Un administrador crea (o edita) el usuario del Presidente y el del Secretario y en **«Firma como»** elige la función.
+   Pueden tener rol «Solo consulta»: igual podrán gestionar su firma.
+2. Cada uno inicia sesión con su usuario y pulsa **«Mi firma»** (abajo, en el menú): escribe su nombre y cargo como
+   deben aparecer y **sube la imagen de su firma** (PNG con fondo transparente o JPG sobre fondo blanco).
+3. Nadie más puede cambiar esa firma, salvo un administrador (**Configuración › Firmas**). Queda registrado quién la
+   subió y cuándo.
+4. Las firmas aparecen en los **certificados** (Presidente y Secretario) y, si la casilla está activa en
+   **Configuración › Institución y certificado**, al final de los **documentos PDF**.
+
+### Documentos institucionales
+Menú **Documentos institucionales › Nuevo documento**: elija el tipo (Oficio, Constancia, Circular, Carta, Comunicado,
+Acta, Invitación); se carga una plantilla. Complete destinatario, asunto y contenido, marque quién firma y pulse
+**Generar PDF**. Cada documento recibe un consecutivo por tipo y año (p. ej. `MEIF-OF-2026-001`) y queda en el listado
+para volver a verlo, imprimirlo o guardarlo. Anular un documento no libera su número.
+
 ## 1. Primer ingreso
 
 1. Abra **MEIF Eventos** desde el acceso directo del escritorio.
 2. La primera vez se pide crear la cuenta del **administrador**: nombre, usuario y contraseña
    (mínimo 8 caracteres, con letras y números).
-3. Vaya a **Configuración › Institución y certificado** y escriba el **nombre del director(a)
-   que firma** los certificados. En **Logo y firma** cargue el logotipo de MEIF y la firma escaneada.
+3. Configure el **membrete**, el **logotipo** y las **firmas** del Presidente y del Secretario (ver sección 0).
 
 ## 2. Crear un evento
 

@@ -1,6 +1,6 @@
 /** Usuarios e inicio de sesión. */
 import bcrypt from 'bcryptjs';
-import { ROLES, type Rol } from '../../shared/modelos';
+import { FIRMANTES, ROLES, type Firmante, type Rol } from '../../shared/modelos';
 import { auditar, ErrorNegocio, limpiar, requerirAdmin, requerirSesion, type Contexto, type Sesion } from './comun';
 import type { Db } from '../db/connection';
 
@@ -20,7 +20,7 @@ export const hayUsuarios = (db: Db) => db.valor<number>('SELECT count(*) FROM us
 
 function sesionDe(db: Db, id: number): Sesion {
   const u = db.get('SELECT * FROM usuarios WHERE id = ?', [id]);
-  return { id: u.id, usuario: u.usuario, nombre: u.nombre, rol: u.rol, debeCambiarClave: !!u.debe_cambiar_clave };
+  return { id: u.id, usuario: u.usuario, nombre: u.nombre, rol: u.rol, debeCambiarClave: !!u.debe_cambiar_clave, firmante: u.firmante ?? null };
 }
 
 export function crearPrimerAdministrador(ctx: Contexto, d: { usuario: string; nombre: string; clave: string }): Sesion {
@@ -64,10 +64,10 @@ export function cambiarClave(ctx: Contexto, actual: string, nueva: string): Sesi
 
 export function listarUsuarios(ctx: Contexto) {
   requerirAdmin(ctx);
-  return ctx.db.all('SELECT id, usuario, nombre, rol, activo, ultimo_acceso FROM usuarios WHERE eliminado_en IS NULL ORDER BY nombre');
+  return ctx.db.all('SELECT id, usuario, nombre, rol, activo, ultimo_acceso, firmante FROM usuarios WHERE eliminado_en IS NULL ORDER BY nombre');
 }
 
-export function guardarUsuario(ctx: Contexto, d: { id?: number; usuario: string; nombre: string; rol: Rol; activo?: boolean; clave?: string }): number {
+export function guardarUsuario(ctx: Contexto, d: { id?: number; usuario: string; nombre: string; rol: Rol; activo?: boolean; clave?: string; firmante?: Firmante | '' | null }): number {
   const s = requerirAdmin(ctx);
   const usuario = validarUsuario(d.usuario);
   const nombre = limpiar(d.nombre);
@@ -77,16 +77,23 @@ export function guardarUsuario(ctx: Contexto, d: { id?: number; usuario: string;
     throw new ErrorNegocio('Ya existe un usuario con ese nombre de usuario.');
   }
   const activo = d.activo === false ? 0 : 1;
+  const firmante = d.firmante || null;
+  if (firmante && !(firmante in FIRMANTES)) throw new ErrorNegocio('Firmante no válido.');
+  if (firmante) {
+    const otro = ctx.db.get('SELECT nombre FROM usuarios WHERE firmante = ? AND eliminado_en IS NULL AND id <> ?', [firmante, d.id ?? 0]);
+    if (otro) throw new ErrorNegocio(`El usuario ${otro.nombre} ya firma como ${FIRMANTES[firmante].toLowerCase()}. Quítele esa función primero.`);
+  }
   if (d.id) {
     if (d.id === s.id && (activo === 0 || d.rol !== 'admin')) throw new ErrorNegocio('No puede desactivarse ni quitarse el rol de administrador.');
-    ctx.db.actualizar('usuarios', d.id, { usuario, nombre, rol: d.rol, activo });
+    ctx.db.actualizar('usuarios', d.id, { usuario, nombre, rol: d.rol, activo, firmante });
+    if (d.id === s.id) ctx.sesion = sesionDe(ctx.db, s.id);
     if (d.clave) { validarClave(d.clave); ctx.db.actualizar('usuarios', d.id, { clave_hash: bcrypt.hashSync(d.clave, 10), debe_cambiar_clave: 1 }); }
     auditar(ctx, 'Editó usuario', usuario);
     return d.id;
   }
   if (!d.clave) throw new ErrorNegocio('Asigne una contraseña inicial.');
   validarClave(d.clave);
-  const id = ctx.db.insertar('usuarios', { usuario, nombre, rol: d.rol, activo, clave_hash: bcrypt.hashSync(d.clave, 10), debe_cambiar_clave: 1 });
+  const id = ctx.db.insertar('usuarios', { usuario, nombre, rol: d.rol, activo, firmante, clave_hash: bcrypt.hashSync(d.clave, 10), debe_cambiar_clave: 1 });
   auditar(ctx, 'Creó usuario', usuario);
   return id;
 }
@@ -94,6 +101,6 @@ export function guardarUsuario(ctx: Contexto, d: { id?: number; usuario: string;
 export function eliminarUsuario(ctx: Contexto, id: number) {
   const s = requerirAdmin(ctx);
   if (id === s.id) throw new ErrorNegocio('No puede eliminar su propio usuario.');
-  ctx.db.run("UPDATE usuarios SET eliminado_en = datetime('now','localtime'), activo = 0 WHERE id = ?", [id]);
+  ctx.db.run("UPDATE usuarios SET eliminado_en = datetime('now','localtime'), activo = 0, firmante = NULL WHERE id = ?", [id]);
   auditar(ctx, 'Eliminó usuario', id);
 }

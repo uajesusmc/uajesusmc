@@ -63,11 +63,86 @@ try {
   await captura('01-inicio-sin-banner');
   paso('Primer ingreso: administrador creado; inicio con banner institucional por defecto');
 
+  // ------------------------------------------------------ membrete institucional
   await ir('configuracion');
-  await w.getByLabel('Nombre del director(a) que firma').fill('María Fernanda Ruiz');
+  await w.getByRole('tab', { name: 'Membrete' }).click();
+  await w.getByLabel('Lema institucional (opcional)').fill('Ciencia y conocimiento para transformar');
+  await w.getByLabel('NIT').fill('900.123.456-7');
+  await w.getByLabel('Dirección').fill('Calle 20 # 18-45, Sabanalarga');
+  await w.getByLabel('Teléfono').fill('300 123 4567');
+  await w.getByLabel('Correo electrónico').fill('contacto@meif.org');
+  await w.locator('.hoja-membrete').getByText('NIT 900.123.456-7').waitFor();
   await w.getByRole('button', { name: 'Guardar' }).click();
-  await exito('Configuración guardada');
-  paso('Firma del director configurada');
+  await exito('Membrete guardado');
+  await captura('02a-membrete');
+  paso('Membrete institucional configurado con vista previa en vivo');
+
+  // ------------------------------------------- firmas: presidente (admin) y secretario
+  await w.getByRole('tab', { name: 'Usuarios' }).click();
+  await w.getByRole('button', { name: 'Nuevo usuario' }).click();
+  await modal().getByLabel('Usuario').fill('secretario');
+  await modal().getByLabel('Nombre completo').fill('Ana María Polo');
+  await modal().getByLabel('Rol').selectOption('consulta');
+  await modal().getByLabel('Contraseña inicial').fill('Secre2026x');
+  await modal().getByLabel('Firma como').selectOption('secretario');
+  await modal().getByRole('button', { name: 'Guardar' }).click();
+  await exito('Usuario guardado');
+  await w.getByRole('tab', { name: 'Firmas' }).click();
+  const presidente = w.locator('.tarjeta', { hasText: 'Firma del presidente' });
+  await presidente.getByLabel('Nombre como aparece en los documentos').fill('Carlos Ruiz Charris');
+  await presidente.getByLabel('Cargo').fill('Presidente MEIF');
+  await presidente.getByRole('button', { name: 'Guardar nombre y cargo' }).click();
+  await exito('Datos de firma guardados');
+  eleccion(path.join(raiz, 'tests', 'fixtures', 'firma-presidente.png'));
+  await presidente.getByRole('button', { name: 'Subir firma' }).click();
+  await presidente.getByText('Cargada').waitFor();
+  paso('Firma del presidente cargada');
+
+  // El secretario entra con su usuario (solo consulta) y sube su propia firma
+  await w.locator('.menu-pie button', { hasText: 'Salir' }).click();
+  await modal().getByRole('button', { name: 'Cerrar sesión' }).click();
+  await w.fill('#a-usuario', 'secretario');
+  await w.fill('#a-clave', 'Secre2026x');
+  await w.click('button:has-text("Ingresar")');
+  await w.getByLabel('Contraseña actual').fill('Secre2026x');
+  await w.locator('#c-nueva').fill('Secre2027x');
+  await w.getByLabel('Confirmar nueva contraseña').fill('Secre2027x');
+  await modal().getByRole('button', { name: 'Guardar' }).click();
+  await exito('Contraseña actualizada');
+  await w.locator('.menu-pie button', { hasText: 'Mi firma' }).click();
+  const mia = modal();
+  if (await mia.getByText('Firma del presidente').count()) throw new Error('El secretario no debe ver la firma del presidente en «Mi firma»');
+  await mia.getByLabel('Nombre como aparece en los documentos').fill('Ana María Polo');
+  await mia.getByLabel('Cargo').fill('Secretaria MEIF');
+  await mia.getByRole('button', { name: 'Guardar nombre y cargo' }).click();
+  await exito('Datos de firma guardados');
+  eleccion(path.join(raiz, 'tests', 'fixtures', 'firma-secretario.png'));
+  await mia.getByRole('button', { name: 'Subir firma' }).click();
+  await mia.getByText('Cargada').waitFor();
+  await captura('02b-mi-firma-secretario');
+  await mia.locator('.m-pie').getByRole('button', { name: 'Cerrar' }).click();
+  await w.locator('.menu-pie button', { hasText: 'Salir' }).click();
+  await modal().getByRole('button', { name: 'Cerrar sesión' }).click();
+  await w.fill('#a-usuario', 'admin');
+  await w.fill('#a-clave', 'Meif2026x');
+  await w.click('button:has-text("Ingresar")');
+  await w.locator('.banner').waitFor();
+  paso('El secretario subió su propia firma desde «Mi firma»');
+
+  // ------------------------------------------------------- documento institucional
+  await ir('documentos');
+  await w.getByRole('button', { name: 'Nuevo documento' }).click();
+  await modal().getByLabel('Destinatario').fill('Señor(a)\nRector(a) IE Técnica de Sabanalarga\nCiudad');
+  await modal().getByLabel('Asunto').fill('Invitación a la Olimpiada de Matemáticas MEIF 2026');
+  await modal().getByLabel(/Contenido/).fill('Reciba un cordial saludo.\n\nInvitamos a sus estudiantes a participar en la Olimpiada de Matemáticas MEIF 2026.');
+  await captura('02c-nuevo-documento');
+  await modal().getByRole('button', { name: 'Generar PDF' }).click();
+  await exito('Documento generado');
+  await w.getByText('MEIF-OF-').first().waitFor();
+  await captura('02d-documentos');
+  const oficio = fs.readdirSync(path.join(tmp, 'datos', 'datos', 'documentos')).find((n) => n.startsWith('MEIF-OF-'));
+  if (!oficio) throw new Error('No se generó el PDF del oficio');
+  paso(`Documento institucional ${oficio} generado con membrete y las dos firmas`);
 
   await ir('ponentes');
   await w.getByRole('button', { name: 'Nuevo' }).click();

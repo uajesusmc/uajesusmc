@@ -25,6 +25,7 @@ export function guardarConfig(ctx: Contexto, valores: Record<string, string>) {
   ctx.db.tx(() => {
     for (const [k, v] of Object.entries(valores)) {
       if (!(k in CONFIG_POR_DEFECTO)) throw new ErrorNegocio(`Parámetro desconocido: ${k}`);
+      if (/^(presidente|secretario)_/.test(k)) continue; // se cambian en «Firmas», por el firmante o un administrador
       escribirConfig(ctx.db, k, String(v ?? ''));
     }
   });
@@ -51,7 +52,7 @@ function copiarImagen(origen: string, dir: string, prefijo: string): string {
 }
 const dataUrl = (p: string) => `data:${p.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${fs.readFileSync(p).toString('base64')}`;
 
-export const IMAGENES = ['logo', 'firma_director'] as const;
+export const IMAGENES = ['logo', 'firma_presidente', 'firma_secretario'] as const;
 export type Imagen = (typeof IMAGENES)[number];
 
 export function rutaImagen(ctx: Contexto, img: Imagen): string | null {
@@ -59,9 +60,10 @@ export function rutaImagen(ctx: Contexto, img: Imagen): string | null {
   const p = n ? path.join(ctx.rutas.imagenes, n) : '';
   return p && fs.existsSync(p) ? p : null;
 }
-export function guardarImagen(ctx: Contexto, img: Imagen, origen: string | null) {
-  requerirEdicion(ctx);
+export function guardarImagen(ctx: Contexto, img: Imagen, origen: string | null, verificado = false) {
+  if (!verificado) requerirEdicion(ctx);
   if (!IMAGENES.includes(img)) throw new ErrorNegocio('Imagen desconocida.');
+  if (img.startsWith('firma_') && !verificado) throw new ErrorNegocio('Las firmas se gestionan en Configuración › Firmas.');
   escribirConfig(ctx.db, `img_${img}`, origen ? copiarImagen(origen, ctx.rutas.imagenes, img) : '');
   auditar(ctx, origen ? `Cargó imagen ${img}` : `Quitó imagen ${img}`);
 }

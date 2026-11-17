@@ -168,4 +168,33 @@ export const MIGRACIONES: string[] = [
   ALTER TABLE actividades ADD COLUMN aula_id INTEGER REFERENCES aulas(id);
   CREATE INDEX ix_actividades_cursillo ON actividades(cursillo_id);
   `,
+  // ------------------------------------- v3: firmas del Presidente y del Secretario
+  `
+  ALTER TABLE usuarios ADD COLUMN firmante TEXT CHECK (firmante IS NULL OR firmante IN ('presidente','secretario'));
+  CREATE UNIQUE INDEX ux_usuarios_firmante ON usuarios(firmante) WHERE firmante IS NOT NULL AND eliminado_en IS NULL;
+  -- El «director» configurado antes pasa a ser el Presidente.
+  INSERT OR IGNORE INTO configuracion (clave, valor) SELECT 'presidente_nombre', valor FROM configuracion WHERE clave = 'director_nombre' AND valor <> '';
+  INSERT OR IGNORE INTO configuracion (clave, valor) SELECT 'img_firma_presidente', valor FROM configuracion WHERE clave = 'img_firma_director' AND valor <> '';
+  `,
+  // --------------------------------------------- v4: documentos institucionales
+  `
+  CREATE TABLE documentos (
+    id INTEGER PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    consecutivo TEXT NOT NULL UNIQUE,
+    anio INTEGER NOT NULL,
+    numero INTEGER NOT NULL,
+    fecha TEXT NOT NULL,
+    ciudad TEXT,
+    destinatario TEXT,
+    asunto TEXT NOT NULL,
+    cuerpo TEXT NOT NULL,
+    despedida TEXT,
+    firmantes TEXT NOT NULL DEFAULT '',
+    evento_id INTEGER REFERENCES eventos(id),
+    creado_por TEXT,
+    ${COLS}
+  );
+  CREATE UNIQUE INDEX ux_documentos_numero ON documentos(tipo, anio, numero);
+  `,
 ];

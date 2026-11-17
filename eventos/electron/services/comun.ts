@@ -1,12 +1,12 @@
 /** Tipos y utilidades comunes de los servicios. */
 import type { Db } from '../db/connection';
-import type { Rol } from '../../shared/modelos';
+import type { Firmante, Rol } from '../../shared/modelos';
 
 export class ErrorNegocio extends Error {
   constructor(mensaje: string, public detalle?: unknown) { super(mensaje); this.name = 'ErrorNegocio'; }
 }
 
-export interface Sesion { id: number; usuario: string; nombre: string; rol: Rol; debeCambiarClave: boolean }
+export interface Sesion { id: number; usuario: string; nombre: string; rol: Rol; debeCambiarClave: boolean; firmante: Firmante | null }
 export interface Rutas { datos: string; banners: string; imagenes: string; certificados: string; respaldos: string; archivoDb: string }
 export interface Contexto { db: Db; sesion: Sesion | null; rutas: Rutas }
 

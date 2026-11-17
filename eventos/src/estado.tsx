@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { api } from './api';
 
-export interface Sesion { id: number; usuario: string; nombre: string; rol: 'admin' | 'organizador' | 'consulta'; debeCambiarClave: boolean }
+export interface Sesion { id: number; usuario: string; nombre: string; rol: 'admin' | 'organizador' | 'consulta'; debeCambiarClave: boolean; firmante: 'presidente' | 'secretario' | null }
 export interface InfoApp { version: string; hayUsuarios: boolean; sesion: Sesion | null; datos: string }
 export interface Banner { id: number; nombre: string; tipo: string; anio: number; fecha_inicio: string; fecha_fin: string; lugar: string | null; imagen: string }
 
