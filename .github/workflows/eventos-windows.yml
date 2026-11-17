@@ -5,6 +5,9 @@ on:
   push:
     tags: ['eventos-v*']
 
+permissions:
+  contents: write
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -25,3 +28,17 @@ jobs:
         with:
           name: MEIF-Eventos-instalador
           path: eventos/release/*.exe
+      - name: Publicar descarga (Release)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MEIF Eventos ${{ github.ref_name }}
+          body: |
+            Instalador de **MEIF Eventos** para Windows 10/11 (64 bits). Funciona sin internet.
+
+            1. Descargue `MEIF-Eventos-Setup-1.0.0.exe` (abajo, en «Assets»).
+            2. Ábralo. Si Windows muestra «Windows protegió su PC», pulse «Más información» › «Ejecutar de todas formas».
+            3. Siga el asistente; queda el ícono MEIF Eventos en el escritorio.
+
+            Manual de usuario: eventos/docs/MANUAL_USUARIO.md
+          files: eventos/release/*.exe
