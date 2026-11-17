@@ -38,7 +38,9 @@ const paso = (t) => console.log(`  ✓ ${++pasos}. ${t}`);
 const errores = [];
 
 const app = await electron.launch({
-  executablePath: require('electron'), args: [raiz, '--no-sandbox'],
+  // Con E2E_EJECUTABLE se prueba la aplicación ya empaquetada (como la instala el usuario).
+  executablePath: process.env.E2E_EJECUTABLE || require('electron'),
+  args: process.env.E2E_EJECUTABLE ? ['--no-sandbox'] : [raiz, '--no-sandbox'],
   env: { ...process.env, MEIF_DATA_DIR: path.join(tmp, 'datos'), MEIF_E2E: '1', MEIF_E2E_ARCHIVO: control },
 });
 const w = await app.firstWindow();

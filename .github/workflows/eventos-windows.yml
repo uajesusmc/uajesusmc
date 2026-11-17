@@ -24,6 +24,15 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run dist:win
+      - name: Verificar que el paquete tenga todas sus dependencias
+        shell: bash
+        run: |
+          npx --yes @electron/asar extract release/win-unpacked/resources/app.asar ../paquete
+          node tests/verificar-paquete.cjs ../paquete
+      - name: Versión
+        id: version
+        shell: bash
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: MEIF-Eventos-instalador
@@ -31,14 +40,14 @@ jobs:
       - name: Publicar descarga (Release)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: eventos-v1.0.0
+          tag_name: eventos-v${{ steps.version.outputs.v }}
           target_commitish: ${{ github.sha }}
-          name: MEIF Eventos 1.0.0 – Instalador para Windows
+          name: MEIF Eventos ${{ steps.version.outputs.v }} – Instalador para Windows
           make_latest: true
           body: |
             Instalador de **MEIF Eventos** para Windows 10/11 (64 bits). Funciona sin internet.
 
-            1. Descargue `MEIF-Eventos-Setup-1.0.0.exe` (abajo, en «Assets»).
+            1. Descargue `MEIF-Eventos-Setup-${{ steps.version.outputs.v }}.exe` (abajo, en «Assets»).
             2. Ábralo. Si Windows muestra «Windows protegió su PC», pulse «Más información» › «Ejecutar de todas formas».
             3. Siga el asistente; queda el ícono MEIF Eventos en el escritorio.
 

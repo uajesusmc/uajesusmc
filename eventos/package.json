@@ -1,7 +1,7 @@
 {
   "name": "meif-eventos",
   "productName": "MEIF Eventos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Plataforma de escritorio para organizar los eventos anuales de MEIF – Sabanalarga",
   "author": "MEIF - SABANALARGA",
   "license": "UNLICENSED",
@@ -69,7 +69,7 @@
     "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.0.12",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.460.0",
     "playwright-core": "^1.49.0",
