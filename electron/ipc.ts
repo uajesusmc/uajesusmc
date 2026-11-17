@@ -176,7 +176,11 @@ export function crearRutas(app: Aplicacion, ui: Dialogos, info: { version: strin
       return destino;
     },
     'certificados.regenerar': async (ctx, a) => { requerirPermiso(ctx, 'certificados', 'editar'); await certificados.regenerarPdf(ctx, a.id); return true; },
-    'certificados.anular': (ctx, a) => { certificados.anular(ctx, a.id, a.motivo); return true; },
+    'certificados.anular': async (ctx, a) => {
+      certificados.anular(ctx, a.id, a.motivo);
+      await certificados.regenerarPdf(ctx, a.id); // el PDF queda con la marca «ANULADO»
+      return true;
+    },
     'certificados.verificar': (ctx, a) => certificados.verificar(ctx, a.texto),
 
     // ------------------------------------------------------------ reportes
