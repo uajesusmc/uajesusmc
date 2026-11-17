@@ -49,7 +49,8 @@
       "deleteAppDataOnUninstall": false,
       "artifactName": "MEIF-Eventos-Setup-${version}.exe"
     },
-    "publish": null
+    "publish": null,
+    "compression": "maximum"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
