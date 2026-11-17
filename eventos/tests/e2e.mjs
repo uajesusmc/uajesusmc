@@ -77,7 +77,14 @@ try {
   await modal().getByLabel('Área').selectOption('Matemáticas');
   await modal().getByRole('button', { name: 'Guardar' }).click();
   await exito('Ponente registrado');
-  paso('Ponente registrado');
+  await w.getByRole('button', { name: 'Nuevo' }).click();
+  await modal().getByLabel('Identificación').fill('72100300');
+  await modal().getByLabel('Nombres').fill('Lucía');
+  await modal().getByLabel('Apellidos').fill('Barrios');
+  await modal().getByLabel('Área').selectOption('Física');
+  await modal().getByRole('button', { name: 'Guardar' }).click();
+  await exito('Ponente registrado');
+  paso('Docentes registrados');
 
   await ir('eventos');
   await w.getByRole('button', { name: 'Nuevo evento' }).click();
@@ -125,6 +132,60 @@ try {
   await modal().getByRole('button', { name: 'Cancelar' }).click();
   paso('Agenda creada y cruce de ponente detectado');
 
+  // ------------------------------------------- organización: aulas, cursillos y horario docente
+  await w.getByRole('tab', { name: /Organización/ }).click();
+  await w.getByRole('tab', { name: 'Aulas', exact: true }).click();
+  for (const [aula, cap] of [['Aula 101', '30'], ['Sala de informática', '20']]) {
+    await w.getByRole('button', { name: 'Nueva aula' }).click();
+    await modal().getByLabel('Nombre del aula o espacio').fill(aula);
+    await modal().getByLabel('Capacidad (personas)').fill(cap);
+    await modal().getByRole('button', { name: 'Guardar' }).click();
+    await exito('Aula guardada');
+  }
+  await w.getByRole('tab', { name: /Cursillos, docentes y aulas/ }).click();
+  const cursillo = async (nombre, docente, aula) => {
+    await w.getByRole('button', { name: 'Nuevo cursillo' }).click();
+    await modal().getByLabel('Nombre del cursillo').fill(nombre);
+    await modal().getByLabel('Nivel o grupo').fill('Grado 11°');
+    await elegir(modal().getByLabel('Docente que lo dicta'), docente);
+    await elegir(modal().getByLabel('Aula asignada'), aula);
+    await modal().getByRole('button', { name: 'Guardar' }).click();
+    await exito('Cursillo guardado');
+  };
+  await cursillo('Álgebra y funciones', 'Charris', 'Aula 101');
+  await cursillo('Física: cinemática', 'Barrios', 'Sala de informática');
+  await cursillo('Geometría', 'Charris', 'Sala de informática');
+  const programarCursillo = async (nombre, inicio, fin) => {
+    await w.getByRole('row', { name: new RegExp(nombre) }).getByRole('button', { name: 'Programar horario' }).click();
+    await modal().getByLabel('Una sola fecha').check();
+    await modal().getByLabel('Fecha', { exact: true }).fill(iso(0));
+    await modal().getByLabel('Hora de inicio').fill(inicio);
+    await modal().getByLabel('Hora de fin').fill(fin);
+  };
+  await programarCursillo('Álgebra y funciones', '14:00', '16:00');
+  await modal().getByText(/Sin cruces: el docente y el aula están libres/).waitFor();
+  await modal().getByRole('button', { name: /^Guardar 1 sesión/ }).click();
+  await exito('1 sesión(es) programada');
+  await programarCursillo('Física: cinemática', '14:00', '16:00');
+  await modal().getByText(/Sin cruces/).waitFor();
+  await modal().getByRole('button', { name: /^Guardar 1 sesión/ }).click();
+  await exito('1 sesión(es) programada');
+  // Geometría con el mismo docente de Álgebra a la misma hora → cruce
+  await programarCursillo('Geometría', '15:00', '17:00');
+  await modal().getByText(/Cruce del ponente/).waitFor();
+  await captura('03b-organizacion-cruce');
+  await modal().getByLabel('Hora de inicio').fill('16:00');
+  await modal().getByLabel('Hora de fin').fill('18:00');
+  await modal().getByText(/Sin cruces/).waitFor();
+  await modal().getByRole('button', { name: /^Guardar 1 sesión/ }).click();
+  await exito('1 sesión(es) programada');
+  await captura('03c-organizacion-cursillos');
+  await w.getByRole('tab', { name: 'Horario de docentes' }).click();
+  await w.locator('.bloque-horario', { hasText: 'Álgebra y funciones' }).getByText('Aula 101').waitFor();
+  await w.locator('.bloque-horario', { hasText: 'Física: cinemática' }).getByText('Sala de informática').waitFor();
+  await captura('03d-horario-docentes');
+  paso('Organización: aulas, cursillos con docente y aula, cruce detectado y horario de docentes');
+
   await w.getByRole('tab', { name: /Inscritos/ }).click();
   eleccion(excel);
   await w.getByRole('button', { name: 'Importar Excel' }).click();
@@ -135,7 +196,7 @@ try {
   await w.getByRole('cell', { name: 'Mendoza Polo Valentina' }).waitFor();
   paso('3 participantes importados desde Excel e inscritos');
 
-  await w.getByRole('tab', { name: 'Asistencia' }).click();
+  await w.getByRole('tab', { name: 'Asistencia', exact: true }).click();
   await w.locator('button', { hasText: 'Acto de inauguración' }).click();
   await w.getByRole('button', { name: 'Marcar todos' }).click();
   await w.getByRole('button', { name: 'Guardar asistencia' }).click();

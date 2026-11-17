@@ -71,6 +71,8 @@ export function guardar(ctx: Contexto, d: DatosActividad): number {
   const datos = {
     evento_id: Number(d.evento_id), titulo: limpiar(d.titulo), tipo: d.tipo, area: limpiar(d.area), ponente_id: d.ponente_id || null,
     fecha: d.fecha, hora_inicio: d.hora_inicio, hora_fin: d.hora_fin, lugar: limpiar(d.lugar), descripcion: limpiar(d.descripcion),
+    // Si el lugar coincide con un aula registrada, la actividad queda vinculada a ella.
+    aula_id: limpiar(d.lugar) ? ctx.db.valor<number>('SELECT id FROM aulas WHERE lower(nombre) = lower(?) AND eliminado_en IS NULL', [limpiar(d.lugar)]) ?? null : null,
   };
   if (d.id) {
     if (!ctx.db.get('SELECT 1 FROM actividades WHERE id = ? AND eliminado_en IS NULL', [d.id])) throw new ErrorNegocio('La actividad ya no existe.');

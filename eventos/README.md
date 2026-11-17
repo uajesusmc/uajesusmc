@@ -12,6 +12,7 @@ Saber 11°, ferias de la ciencia, seminarios y talleres.
 |---|---|
 | **Inicio** | Banner con la **foto inaugural** del evento (se cambia con un clic), indicadores del año, calendario de eventos y próximas actividades. |
 | **Eventos del año** | Crear eventos (tipo, fechas, lugar, cupo, estado). Cada evento tiene: **Resumen y foto**, **Agenda**, **Inscritos**, **Asistencia** y **Certificados**. |
+| **Organización y horario docente** | Aulas, cursillos del evento con su **docente** y **aula** asignados, programación semanal de sesiones con detección de cruces (docente o aula ocupados) y **horario de docentes** semanal, en pantalla, PDF y Excel. |
 | **Agenda** | Actividades (ceremonia, conferencias, talleres, competencias, recesos) con ponente, lugar y horario. **Detecta cruces** del ponente y del lugar, actividades duplicadas y fechas fuera del evento. |
 | **Participantes** | Registro único por número de documento (sin duplicados). Inscripción individual o **masiva desde Excel**, con vista previa. |
 | **Ponentes y docentes** | Conferencistas y talleristas que se asignan a la agenda. |
@@ -27,6 +28,8 @@ conservan al actualizar o reinstalar.
 
 - [Manual de usuario](docs/MANUAL_USUARIO.md)
 - [Manual de instalación](docs/MANUAL_INSTALACION.md)
+
+![Horario de docentes con aula y cursillo](docs/horario-docentes.png)
 
 ## Desarrollo
 

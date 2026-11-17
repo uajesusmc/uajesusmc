@@ -9,6 +9,7 @@ import * as certificados from './services/certificados';
 import { ErrorNegocio, requerirAdmin, requerirEdicion, requerirSesion, type Contexto, type Rutas } from './services/comun';
 import * as config from './services/config';
 import * as datos from './services/datos';
+import * as org from './services/organizacion';
 import * as reportes from './services/reportes';
 import * as respaldo from './services/respaldo';
 
@@ -90,6 +91,16 @@ export function crearRutas(app: Aplicacion, ui: Dialogos, version: string): Reco
     'agenda.guardar': (ctx, a) => agenda.guardar(ctx, a),
     'agenda.eliminar': (ctx, a) => { agenda.eliminar(ctx, a.id); return true; },
     'agenda.horas': (ctx, a) => agenda.horasEvento(ctx, a.eventoId),
+
+    'aulas.listar': (ctx) => org.listarAulas(ctx),
+    'aulas.guardar': (ctx, a) => org.guardarAula(ctx, a),
+    'aulas.eliminar': (ctx, a) => { org.eliminarAula(ctx, a.id); return true; },
+    'cursillos.listar': (ctx, a) => org.listarCursillos(ctx, a.eventoId),
+    'cursillos.guardar': (ctx, a) => org.guardarCursillo(ctx, a),
+    'cursillos.eliminar': (ctx, a) => { org.eliminarCursillo(ctx, a.id); return true; },
+    'cursillos.verificar': (ctx, a) => org.verificarProgramacion(ctx, a),
+    'cursillos.programar': (ctx, a) => org.programar(ctx, a.programacion, !!a.soloValidas),
+    'horario.docentes': (ctx, a) => org.horarioDocentes(ctx, a.eventoId, a.ponenteId),
 
     'asistencia.planilla': (ctx, a) => asistencia.planilla(ctx, a.actividadId),
     'asistencia.registrar': (ctx, a) => asistencia.registrar(ctx, a.actividadId, a.registros),

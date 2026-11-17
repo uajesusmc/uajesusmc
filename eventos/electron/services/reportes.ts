@@ -5,8 +5,9 @@ import { resumenEvento } from './asistencia';
 import { auditar, DURACION_SQL, ErrorNegocio, hoy, redondear, requerirSesion, type Contexto } from './comun';
 import { leerConfig, rutaImagen } from './config';
 import { listar as listarCertificados } from './certificados';
+import { horarioDocentes } from './organizacion';
 
-export interface Filtros { eventoId?: number | null; anio?: number | null }
+export interface Filtros { eventoId?: number | null; anio?: number | null; ponenteId?: number | null }
 
 const nombreEvento = (ctx: Contexto, id?: number | null) => (id ? ctx.db.valor<string>('SELECT nombre FROM eventos WHERE id = ?', [id]) : '');
 const requiereEvento = (f: Filtros) => { if (!f.eventoId) throw new ErrorNegocio('Seleccione el evento.'); };
@@ -48,6 +49,36 @@ export const REPORTES: { id: string; nombre: string; filtro: 'evento' | 'anio'; 
           { key: 'n', label: '#', align: 'right' }, { key: 'documento', label: 'Documento' }, { key: 'nombre', label: 'Participante' },
           { key: 'institucion', label: 'Institución' }, { key: 'grado', label: 'Grado' }, { key: 'telefono', label: 'Teléfono' },
           { key: 'correo', label: 'Correo' }, { key: 'fecha', label: 'Inscripción' }, { key: 'firma', label: 'Firma', ancho: 90 },
+        ],
+      };
+    },
+  },
+  {
+    id: 'horario_docentes', nombre: 'Horario de docentes (aula y cursillo)', filtro: 'evento',
+    construir: (ctx, f) => {
+      requiereEvento(f);
+      const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const sesiones = horarioDocentes(ctx, Number(f.eventoId), f.ponenteId);
+      const filas: Record<string, any>[] = [];
+      let actual = '';
+      let subtotal = 0;
+      const cerrar = () => { if (actual) filas.push({ docente: `Total ${actual}`, horas: redondear(subtotal) }); };
+      for (const s of sesiones) {
+        if (s.docente !== actual) { cerrar(); actual = s.docente; subtotal = 0; }
+        if (s.tipo !== 'Receso') subtotal += s.horas;
+        filas.push({
+          docente: s.docente, cursillo: s.cursillo, nivel: s.nivel, aula: s.aula, dia: dias[new Date(s.fecha + 'T12:00').getDay()],
+          fecha: s.fecha, hora: `${s.hora_inicio} – ${s.hora_fin}`, horas: s.horas,
+        });
+      }
+      cerrar();
+      const docente = f.ponenteId ? ctx.db.valor<string>("SELECT nombres || ' ' || apellidos FROM ponentes WHERE id = ?", [f.ponenteId]) : '';
+      return {
+        titulo: `Horario de docentes – ${nombreEvento(ctx, f.eventoId)}${docente ? ` – ${docente}` : ''}`, filas,
+        columnas: [
+          { key: 'docente', label: 'Docente' }, { key: 'cursillo', label: 'Cursillo a dictar' }, { key: 'nivel', label: 'Nivel / grupo' },
+          { key: 'aula', label: 'Aula' }, { key: 'dia', label: 'Día' }, { key: 'fecha', label: 'Fecha' }, { key: 'hora', label: 'Hora' },
+          { key: 'horas', label: 'Horas', align: 'right' },
         ],
       };
     },

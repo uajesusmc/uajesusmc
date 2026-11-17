@@ -138,4 +138,34 @@ export const MIGRACIONES: string[] = [
 
   CREATE TABLE configuracion (clave TEXT PRIMARY KEY, valor TEXT);
   `,
+  // ------------------------------------------------ v2: organización del evento
+  `
+  CREATE TABLE aulas (
+    id INTEGER PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    capacidad INTEGER CHECK (capacidad IS NULL OR capacidad > 0),
+    ubicacion TEXT,
+    recursos TEXT,
+    ${COLS}
+  );
+  CREATE UNIQUE INDEX ux_aulas ON aulas(lower(nombre)) WHERE eliminado_en IS NULL;
+
+  CREATE TABLE cursillos (
+    id INTEGER PRIMARY KEY,
+    evento_id INTEGER NOT NULL REFERENCES eventos(id),
+    nombre TEXT NOT NULL,
+    area TEXT,
+    nivel TEXT,
+    docente_id INTEGER REFERENCES ponentes(id),
+    aula_id INTEGER REFERENCES aulas(id),
+    cupo INTEGER CHECK (cupo IS NULL OR cupo > 0),
+    descripcion TEXT,
+    ${COLS}
+  );
+  CREATE UNIQUE INDEX ux_cursillos ON cursillos(evento_id, lower(nombre)) WHERE eliminado_en IS NULL;
+
+  ALTER TABLE actividades ADD COLUMN cursillo_id INTEGER REFERENCES cursillos(id);
+  ALTER TABLE actividades ADD COLUMN aula_id INTEGER REFERENCES aulas(id);
+  CREATE INDEX ix_actividades_cursillo ON actividades(cursillo_id);
+  `,
 ];

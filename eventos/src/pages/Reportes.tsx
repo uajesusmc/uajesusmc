@@ -12,14 +12,17 @@ export function Reportes() {
   const [id, setId] = useState('eventos');
   const [eventoId, setEventoId] = useState<number | ''>('');
   const [anio, setAnio] = useState<number>(new Date().getFullYear());
+  const [ponentes, setPonentes] = useState<any[]>([]);
+  const [ponenteId, setPonenteId] = useState<number | ''>('');
   const [vista, setVista] = useState<any>(null);
   useEffect(() => {
     intentar(() => api('reportes.catalogo')).then((r) => r && setCatalogo(r));
     api('datos.listar', { modelo: 'eventos' }).then(setEventos).catch(() => undefined);
+    api('datos.listar', { modelo: 'ponentes' }).then(setPonentes).catch(() => undefined);
   }, [intentar]);
-  useEffect(() => setVista(null), [id, eventoId, anio]);
+  useEffect(() => setVista(null), [id, eventoId, anio, ponenteId]);
   const def = catalogo.find((r) => r.id === id);
-  const filtros = def?.filtro === 'anio' ? { anio } : { eventoId: eventoId || null };
+  const filtros = def?.filtro === 'anio' ? { anio } : { eventoId: eventoId || null, ponenteId: id === 'horario_docentes' ? ponenteId || null : null };
   const falta = def?.filtro === 'evento' && !eventoId && !['certificados', 'ponentes'].includes(id);
   return (
     <Pagina titulo="Reportes" descripcion="Listados de inscritos, agenda, asistencia, certificados, ponentes y eventos del año en PDF o Excel.">
@@ -40,6 +43,11 @@ export function Reportes() {
                   <select id="r-ev" value={eventoId} onChange={(e) => setEventoId(e.target.value ? Number(e.target.value) : '')}>
                     <option value="">{['certificados', 'ponentes'].includes(id) ? 'Todos los eventos' : '— Seleccione el evento —'}</option>
                     {eventos.map((e) => <option key={e.id} value={e.id}>{e.anio} · {e.nombre}</option>)}</select></div>
+              )}
+              {id === 'horario_docentes' && (
+                <div className="campo" style={{ minWidth: 240 }}><label htmlFor="r-doc">Docente</label>
+                  <select id="r-doc" value={ponenteId} onChange={(e) => setPonenteId(e.target.value ? Number(e.target.value) : '')}>
+                    <option value="">Todos los docentes</option>{ponentes.map((p) => <option key={p.id} value={p.id}>{p.apellidos}, {p.nombres}</option>)}</select></div>
               )}
             </div>
             <div className="fila mt">

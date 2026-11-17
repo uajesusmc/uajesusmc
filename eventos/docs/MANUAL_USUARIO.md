@@ -23,7 +23,24 @@
   una foto ya cargada.
 - Si tiene varios eventos con foto, use **Usar como banner** en el evento que quiera mostrar.
 
-## 4. Agenda
+## 4. Organización y horario de los docentes
+
+En el evento, pestaña **Organización y horario docente**:
+
+1. **Aulas**: registre las aulas y espacios (nombre, capacidad, ubicación, recursos). Son comunes a todos los eventos.
+2. **Cursillos, docentes y aulas › Nuevo cursillo**: nombre del cursillo, área, nivel o grupo,
+   **docente que lo dicta**, **aula asignada** y cupo. Si el cupo supera la capacidad del aula, el sistema avisa.
+3. **Programar horario** (en cada cursillo): elija los días de clase y el rango de fechas (o una sola fecha)
+   y las horas. Antes de guardar, el sistema revisa cada sesión y **no deja guardar** si el docente ya
+   tiene otra clase a esa hora o si el aula está ocupada. Puede guardar solo las sesiones sin cruce.
+4. **Horario de docentes**: vista semanal con cada docente, la hora, el **cursillo que dicta** y el **aula**,
+   o la lista completa. **Horario PDF / Excel** lo imprime para todos los docentes o para uno solo
+   (con el total de horas de cada docente).
+
+Si cambia el docente o el aula de un cursillo, sus sesiones ya programadas se actualizan (verificando cruces).
+Las sesiones también aparecen en la **Agenda** y en **Asistencia**.
+
+## 4b. Agenda
 
 1. Pestaña **Agenda › Agregar actividad**: título, tipo, área, ponente, lugar, fecha y horas.
 2. El sistema revisa mientras escribe y **no deja guardar** si:

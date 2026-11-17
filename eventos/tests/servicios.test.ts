@@ -11,6 +11,7 @@ import * as certificados from '../electron/services/certificados';
 import { fechaISO, type Contexto } from '../electron/services/comun';
 import * as config from '../electron/services/config';
 import * as datos from '../electron/services/datos';
+import * as org from '../electron/services/organizacion';
 import * as reportes from '../electron/services/reportes';
 import * as respaldo from '../electron/services/respaldo';
 
@@ -138,6 +139,48 @@ describe('Asistencia y certificados', () => {
     const re = await certificados.generar(ctx, ev, [a], 'Corrección de nombre');
     expect(re.generados).toHaveLength(1);
     expect(certificados.verificar(ctx, c.codigo).estado).toBe('anulado');
+  });
+});
+
+describe('Organización: cursillos, aulas y horario de docentes', () => {
+  it('programa sesiones con docente y aula, y detecta cruces', () => {
+    const ev = evento({ fecha_inicio: dias(-7), fecha_fin: dias(14) });
+    const [d1, d2] = [ponente('6001'), ponente('6002')];
+    const a101 = org.guardarAula(ctx, { nombre: 'Aula 101', capacidad: 30 });
+    const a102 = org.guardarAula(ctx, { nombre: 'Aula 102', capacidad: 20 });
+    expect(() => org.guardarAula(ctx, { nombre: 'aula 101' })).toThrow(/Ya existe/);
+    const alg = org.guardarCursillo(ctx, { evento_id: ev, nombre: 'Álgebra', area: 'Matemáticas', nivel: '10°', docente_id: d1, aula_id: a101, cupo: 25 }).id;
+    const r = org.guardarCursillo(ctx, { evento_id: ev, nombre: 'Física básica', area: 'Física', docente_id: d2, aula_id: a102, cupo: 25 });
+    expect(r.advertencias[0]).toMatch(/supera la capacidad/);
+    const fis = r.id;
+
+    // Sesiones semanales (lunes y miércoles) dentro del evento
+    const p = { cursillo_id: alg, dias: [1, 3], desde: dias(-7), hasta: dias(14), hora_inicio: '08:00', hora_fin: '10:00' };
+    const v = org.verificarProgramacion(ctx, p);
+    expect(v.sesiones.length).toBeGreaterThanOrEqual(5);
+    expect(v.validas).toBe(v.sesiones.length);
+    expect(org.programar(ctx, p).creadas).toBe(v.sesiones.length);
+
+    // Mismo docente a la misma hora: cruce
+    const otro = org.guardarCursillo(ctx, { evento_id: ev, nombre: 'Geometría', docente_id: d1, aula_id: a102 }).id;
+    expect(() => org.programar(ctx, { ...p, cursillo_id: otro })).toThrow(/Cruce del ponente/);
+    // Física en el Aula 101 ocupada a esa hora: cruce de aula
+    org.guardarCursillo(ctx, { evento_id: ev, nombre: 'Física básica', docente_id: d2, aula_id: a101, cupo: 25, id: fis });
+    expect(org.verificarProgramacion(ctx, { ...p, cursillo_id: fis }).sesiones[0].errores[0]).toMatch(/Aula 101/);
+    // Otra hora: sin cruce
+    expect(org.programar(ctx, { ...p, cursillo_id: fis, hora_inicio: '10:00', hora_fin: '12:00' }).omitidas).toHaveLength(0);
+
+    // Cambiar el aula de Álgebra actualiza sus sesiones; cambiar al docente ocupado se rechaza
+    org.guardarCursillo(ctx, { id: alg, evento_id: ev, nombre: 'Álgebra', docente_id: d1, aula_id: a102 });
+    expect(org.horarioDocentes(ctx, ev, d1).every((s) => s.aula === 'Aula 102')).toBe(true);
+    org.programar(ctx, { cursillo_id: otro, fechas: [dias(1)], hora_inicio: '14:00', hora_fin: '15:00' });
+    expect(() => org.guardarCursillo(ctx, { id: fis, evento_id: ev, nombre: 'Física básica', docente_id: d1, aula_id: a101 })).not.toThrow();
+
+    const h = org.horarioDocentes(ctx, ev);
+    expect(h[0]).toMatchObject({ cursillo: expect.any(String), aula: expect.any(String), docente: expect.any(String) });
+    const rep = reportes.construir(ctx, 'horario_docentes', { eventoId: ev, ponenteId: d1 });
+    expect(rep.filas.at(-1)!.docente).toMatch(/^Total/);
+    expect(() => org.eliminarAula(ctx, a102)).toThrow(/asignada/);
   });
 });
 

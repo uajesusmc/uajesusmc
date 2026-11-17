@@ -1,7 +1,7 @@
 /** Eventos del año y detalle de cada evento (resumen y foto, agenda, inscritos, asistencia y certificados). */
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ArrowLeft, Award, CalendarHeart, CalendarPlus, CheckCircle2, ClipboardCheck, Download, Eye, FileSpreadsheet, ImagePlus, MapPin, Pencil,
+  ArrowLeft, Award, CalendarHeart, GraduationCap, CalendarPlus, CheckCircle2, ClipboardCheck, Download, Eye, FileSpreadsheet, ImagePlus, MapPin, Pencil,
   Plus, Trash2, Upload, UserPlus, Users, XCircle,
 } from 'lucide-react';
 import { AREAS, ESTADOS_EVENTO, TIPOS_ACTIVIDAD } from '../../shared/modelos';
@@ -10,6 +10,7 @@ import { api, fmtFecha, fmtNum } from '../api';
 import { Formulario } from '../components/comunes';
 import { Buscador, CampoTexto, Insignia, Modal, Pestanas, Progreso, Tabla, Tarjeta, Vacio } from '../components/ui';
 import { useApp } from '../estado';
+import { OrganizacionEvento } from './Organizacion';
 
 // ------------------------------------------------------------------- agenda
 function FormularioActividad({ eventoId, actividad, fechaInicial, onCerrar, onGuardado }: { eventoId: number; actividad?: any; fechaInicial: string; onCerrar: () => void; onGuardado: () => void }) {
@@ -371,7 +372,7 @@ function Resumen({ evento, onCambio }: { evento: any; onCambio: () => void }) {
 function DetalleEvento({ id, onVolver }: { id: number; onVolver: () => void }) {
   const { intentar, puedeEditar, confirmar } = useApp();
   const [ev, setEv] = useState<any>(null);
-  const [p, setP] = useState<'resumen' | 'agenda' | 'inscritos' | 'asistencia' | 'certificados'>('resumen');
+  const [p, setP] = useState<'resumen' | 'organizacion' | 'agenda' | 'inscritos' | 'asistencia' | 'certificados'>('resumen');
   const [editar, setEditar] = useState(false);
   const cargar = useCallback(() => { intentar(() => api('datos.obtener', { modelo: 'eventos', id })).then((r) => (r ? setEv(r) : onVolver())); }, [id, intentar, onVolver]);
   useEffect(cargar, [cargar]);
@@ -392,11 +393,13 @@ function DetalleEvento({ id, onVolver }: { id: number; onVolver: () => void }) {
         </div>}
       </div>
       <Pestanas valor={p} onCambio={setP} opciones={[
-        { id: 'resumen', nombre: 'Resumen y foto', icono: <ImagePlus size={16} /> }, { id: 'agenda', nombre: `Agenda (${ev.actividades})`, icono: <CalendarPlus size={16} /> },
+        { id: 'resumen', nombre: 'Resumen y foto', icono: <ImagePlus size={16} /> },
+        { id: 'organizacion', nombre: 'Organización y horario docente', icono: <GraduationCap size={16} /> }, { id: 'agenda', nombre: `Agenda (${ev.actividades})`, icono: <CalendarPlus size={16} /> },
         { id: 'inscritos', nombre: `Inscritos (${ev.inscritos})`, icono: <Users size={16} /> }, { id: 'asistencia', nombre: 'Asistencia', icono: <ClipboardCheck size={16} /> },
         { id: 'certificados', nombre: `Certificados (${ev.certificados})`, icono: <Award size={16} /> },
       ]} />
       {p === 'resumen' && <Resumen evento={ev} onCambio={cargar} />}
+      {p === 'organizacion' && <OrganizacionEvento evento={ev} onCambio={cargar} />}
       {p === 'agenda' && <Agenda evento={ev} onCambio={cargar} />}
       {p === 'inscritos' && <Inscritos evento={ev} onCambio={cargar} />}
       {p === 'asistencia' && <Asistencia evento={ev} />}
