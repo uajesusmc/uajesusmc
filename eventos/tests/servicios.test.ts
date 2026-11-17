@@ -254,6 +254,37 @@ describe('Documentos institucionales con membrete', () => {
   });
 });
 
+describe('Miembros de MEIF', () => {
+  it('registra miembros con o sin cargo y controla los cargos directivos', async () => {
+    const m = (id: string, extra: Record<string, unknown> = {}) => datos.guardar(ctx, 'miembros', {
+      tipo_documento: 'CC', identificacion: id, nombres: 'Nombre', apellidos: `Apellido ${id}`, estado: 'Activo', ...extra,
+    });
+    const pres = m('1001', { cargo: 'Presidente(a)', telefono: '3001234567', correo: 'presi@meif.org' });
+    m('1002', { cargo: 'Secretario(a)' });
+    m('1003'); // sin cargo
+    m('1004', { cargo: 'Vocal' });
+    m('1005', { cargo: 'Vocal' }); // los vocales pueden ser varios
+    expect(() => m('1006', { cargo: 'Presidente(a)' })).toThrow(/ya lo ocupa/);
+    expect(() => m('1001')).toThrow(/Ya existe/);
+    expect(() => m('1007', { fecha_nacimiento: '2999-01-01' })).toThrow(/futura/);
+    // Si el presidente anterior queda inactivo, el cargo se libera
+    datos.guardar(ctx, 'miembros', { ...datos.obtener(ctx, 'miembros', pres), estado: 'Inactivo' });
+    m('1008', { cargo: 'Presidente(a)' });
+
+    const lista = datos.listar(ctx, 'miembros');
+    expect(lista[0].cargo).toBe('Presidente(a)'); // junta directiva primero
+    expect(lista.at(-1)!.estado).toBe('Inactivo'); // inactivos al final
+    expect(datos.listar(ctx, 'miembros', { cargo: 'Sin cargo' }).map((x) => x.identificacion)).toEqual(['1003']);
+    expect(datos.listar(ctx, 'miembros', { cargo: 'Vocal' })).toHaveLength(2);
+
+    const destino = path.join(ctx.rutas.datos, 'miembros.pdf');
+    await reportes.exportar(ctx, reportes.construir(ctx, 'miembros', {}), 'pdf', destino);
+    expect(fs.statSync(destino).size).toBeGreaterThan(1000);
+    datos.eliminar(ctx, 'miembros', pres);
+    expect(datos.papelera(ctx).some((p) => p.tabla === 'miembros')).toBe(true);
+  });
+});
+
 describe('Reportes, seguridad y respaldos', () => {
   it('exporta todos los reportes en PDF y Excel', async () => {
     const ev = evento();

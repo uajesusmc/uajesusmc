@@ -197,4 +197,28 @@ export const MIGRACIONES: string[] = [
   );
   CREATE UNIQUE INDEX ux_documentos_numero ON documentos(tipo, anio, numero);
   `,
+  // ------------------------------------------------------------- v5: miembros
+  `
+  CREATE TABLE miembros (
+    id INTEGER PRIMARY KEY,
+    tipo_documento TEXT NOT NULL DEFAULT 'CC',
+    identificacion TEXT NOT NULL,
+    nombres TEXT NOT NULL,
+    apellidos TEXT NOT NULL,
+    cargo TEXT,
+    area TEXT,
+    profesion TEXT,
+    fecha_nacimiento TEXT,
+    telefono TEXT,
+    correo TEXT,
+    direccion TEXT,
+    municipio TEXT,
+    fecha_ingreso TEXT,
+    estado TEXT NOT NULL DEFAULT 'Activo' CHECK (estado IN ('Activo','Inactivo','Retirado')),
+    observaciones TEXT,
+    ${COLS}
+  );
+  CREATE UNIQUE INDEX ux_miembros ON miembros(identificacion) WHERE eliminado_en IS NULL;
+  CREATE INDEX ix_miembros_nombre ON miembros(apellidos, nombres);
+  `,
 ];

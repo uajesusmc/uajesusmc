@@ -144,6 +144,35 @@ try {
   if (!oficio) throw new Error('No se generó el PDF del oficio');
   paso(`Documento institucional ${oficio} generado con membrete y las dos firmas`);
 
+  // ------------------------------------------------------------- miembros de MEIF
+  await ir('miembros');
+  const miembro = async (doc, nombres, apellidos, cargo, tel) => {
+    await w.getByRole('button', { name: 'Nuevo miembro' }).click();
+    await modal().getByLabel('Número de identificación').fill(doc);
+    await modal().getByLabel('Nombres').fill(nombres);
+    await modal().getByLabel('Apellidos').fill(apellidos);
+    if (cargo) await modal().getByLabel('Cargo (opcional)').selectOption(cargo);
+    if (tel) await modal().getByLabel('Teléfono').fill(tel);
+    await modal().getByLabel('Profesión / ocupación').fill('Licenciado(a) en Matemáticas');
+    await modal().getByRole('button', { name: 'Guardar' }).click();
+  };
+  await miembro('8001001', 'Carlos', 'Ruiz Charris', 'Presidente(a)', '3001112233');
+  await exito('Miembro registrado');
+  await miembro('8001002', 'Ana María', 'Polo', 'Secretario(a)', '3004445566');
+  await exito('Miembro registrado');
+  await miembro('8001003', 'Jorge', 'Ariza', '', '');
+  await exito('Miembro registrado');
+  await miembro('8001004', 'Otro', 'Presidente', 'Presidente(a)', '');
+  await modal().getByText(/ya lo ocupa Carlos Ruiz Charris/).waitFor();
+  await modal().getByRole('button', { name: 'Cancelar' }).click();
+  await w.locator('.miembro-junta', { hasText: 'Presidente(a)' }).getByText('Carlos Ruiz Charris').waitFor();
+  await w.locator('.miembro-junta', { hasText: 'Tesorero(a)' }).getByText('Vacante').waitFor();
+  await captura('02e-miembros');
+  await w.getByRole('cell', { name: /Ariza Jorge/ }).click();
+  await modal().getByText('Sin cargo').waitFor();
+  await modal().locator('.m-pie').getByRole('button', { name: 'Cerrar' }).click();
+  paso('Miembros con y sin cargo; junta directiva y cargo único controlado');
+
   await ir('ponentes');
   await w.getByRole('button', { name: 'Nuevo' }).click();
   await modal().getByLabel('Identificación').fill('72100200');

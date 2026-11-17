@@ -1,6 +1,6 @@
 /** Eventos, ponentes, participantes e inscripciones (incluye importación desde Excel). */
 import ExcelJS from 'exceljs';
-import { MODELOS, type Campo, type NombreModelo } from '../../shared/modelos';
+import { CARGOS_MIEMBRO, CARGOS_UNICOS, MODELOS, type Campo, type NombreModelo } from '../../shared/modelos';
 import { auditar, ErrorNegocio, esFecha, fechaISO, hoy, limpiar, requerirEdicion, requerirSesion, type Contexto } from './comun';
 
 const CONSULTAS: Record<NombreModelo, string> = {
@@ -14,20 +14,24 @@ const CONSULTAS: Record<NombreModelo, string> = {
             FROM ponentes t`,
   participantes: `SELECT t.*, (SELECT count(*) FROM inscripciones i WHERE i.participante_id = t.id AND i.estado = 'Inscrito') AS eventos
             FROM participantes t`,
+  miembros: `SELECT t.*, t.nombres || ' ' || t.apellidos AS nombre FROM miembros t`,
 };
+/** Orden de la junta directiva primero, luego el resto de cargos y los miembros sin cargo. */
+const ORDEN_CARGO = `CASE t.cargo ${CARGOS_MIEMBRO.map((c, i) => `WHEN '${c}' THEN ${i}`).join(' ')} ELSE 99 END`;
 const BUSQUEDA: Record<NombreModelo, string[]> = {
   eventos: ['t.nombre', 't.tipo', 't.lugar'],
   ponentes: ['t.identificacion', 't.nombres', 't.apellidos', 't.area'],
   participantes: ['t.identificacion', 't.nombres', 't.apellidos', "t.nombres || ' ' || t.apellidos", 't.institucion'],
+  miembros: ['t.identificacion', 't.nombres', 't.apellidos', "t.nombres || ' ' || t.apellidos", 't.cargo', 't.profesion', 't.correo'],
 };
-const ORDEN: Record<NombreModelo, string> = { eventos: 't.fecha_inicio DESC', ponentes: 't.apellidos, t.nombres', participantes: 't.apellidos, t.nombres' };
+const ORDEN: Record<NombreModelo, string> = { eventos: 't.fecha_inicio DESC', ponentes: 't.apellidos, t.nombres', participantes: 't.apellidos, t.nombres', miembros: `(t.estado <> 'Activo'), ${ORDEN_CARGO}, t.apellidos, t.nombres` };
 
 const modelo = (n: string): NombreModelo => {
   if (!(n in MODELOS)) throw new ErrorNegocio('Tipo de registro desconocido.');
   return n as NombreModelo;
 };
 
-export function listar(ctx: Contexto, nombre: string, f: { busqueda?: string; anio?: number; estado?: string; eventoId?: number } = {}) {
+export function listar(ctx: Contexto, nombre: string, f: { busqueda?: string; anio?: number; estado?: string; eventoId?: number; cargo?: string } = {}) {
   requerirSesion(ctx);
   const n = modelo(nombre);
   const w = ['t.eliminado_en IS NULL'];
@@ -35,7 +39,10 @@ export function listar(ctx: Contexto, nombre: string, f: { busqueda?: string; an
   const t = limpiar(f.busqueda);
   if (t) { w.push(`(${BUSQUEDA[n].map((c) => `${c} LIKE ?`).join(' OR ')})`); BUSQUEDA[n].forEach(() => p.push(`%${t}%`)); }
   if (n === 'eventos' && f.anio) { w.push('t.anio = ?'); p.push(f.anio); }
-  if (n === 'eventos' && f.estado) { w.push('t.estado = ?'); p.push(f.estado); }
+  if ((n === 'eventos' || n === 'miembros') && f.estado) { w.push('t.estado = ?'); p.push(f.estado); }
+  if (n === 'miembros' && f.cargo) {
+    if (f.cargo === 'Sin cargo') w.push('t.cargo IS NULL'); else { w.push('t.cargo = ?'); p.push(f.cargo); }
+  }
   return ctx.db.all(`${CONSULTAS[n]} WHERE ${w.join(' AND ')} ORDER BY ${ORDEN[n]}`, p);
 }
 
@@ -86,6 +93,15 @@ export function guardar(ctx: Contexto, nombre: string, datos: Record<string, unk
       throw new ErrorNegocio(`Ya existe un ${m.singular.toLowerCase()} con esa identificación.`);
     }
   }
+  if (n === 'miembros') {
+    if (d.fecha_nacimiento && d.fecha_nacimiento > hoy()) throw new ErrorNegocio('La fecha de nacimiento no puede ser futura.');
+    if (d.cargo && (CARGOS_UNICOS as readonly string[]).includes(d.cargo) && d.estado === 'Activo') {
+      const otro = ctx.db.get(
+        "SELECT nombres || ' ' || apellidos AS nombre FROM miembros WHERE cargo = ? AND estado = 'Activo' AND eliminado_en IS NULL AND id <> ?", [d.cargo, id ?? 0],
+      );
+      if (otro) throw new ErrorNegocio(`El cargo ${d.cargo} ya lo ocupa ${otro.nombre}. Quítele el cargo o márquelo inactivo primero.`);
+    }
+  }
   if (n === 'eventos') {
     if (d.fecha_fin < d.fecha_inicio) throw new ErrorNegocio('La fecha de finalización no puede ser anterior a la de inicio.');
     d.anio = Number(d.fecha_inicio.slice(0, 4));
@@ -110,7 +126,8 @@ export function eliminar(ctx: Contexto, nombre: string, id: number) {
     ? [["SELECT count(*) FROM certificados WHERE evento_id = ? AND anulado = 0", 'certificados emitidos']]
     : n === 'ponentes'
       ? [['SELECT count(*) FROM actividades WHERE ponente_id = ? AND eliminado_en IS NULL', 'actividades en la agenda']]
-      : [['SELECT count(*) FROM certificados WHERE participante_id = ? AND anulado = 0', 'certificados emitidos']];
+      : n === 'miembros' ? []
+        : [['SELECT count(*) FROM certificados WHERE participante_id = ? AND anulado = 0', 'certificados emitidos']];
   for (const [sql, txt] of deps) {
     const c = ctx.db.valor<number>(sql, [id]);
     if (c) throw new ErrorNegocio(`No se puede eliminar: tiene ${c} ${txt}.`);
@@ -126,12 +143,13 @@ export function papelera(ctx: Contexto) {
      UNION ALL SELECT 'ponentes', id, nombres || ' ' || apellidos, eliminado_en FROM ponentes WHERE eliminado_en IS NOT NULL
      UNION ALL SELECT 'participantes', id, identificacion || ' – ' || nombres || ' ' || apellidos, eliminado_en FROM participantes WHERE eliminado_en IS NOT NULL
      UNION ALL SELECT 'actividades', id, titulo || ' (' || fecha || ')', eliminado_en FROM actividades WHERE eliminado_en IS NOT NULL
+     UNION ALL SELECT 'miembros', id, nombres || ' ' || apellidos || coalesce(' – ' || cargo, ''), eliminado_en FROM miembros WHERE eliminado_en IS NOT NULL
      ORDER BY eliminado_en DESC`,
   );
 }
 export function restaurar(ctx: Contexto, tabla: string, id: number) {
   requerirEdicion(ctx);
-  if (!['eventos', 'ponentes', 'participantes', 'actividades'].includes(tabla)) throw new ErrorNegocio('Tabla no válida.');
+  if (!['eventos', 'ponentes', 'participantes', 'actividades', 'miembros'].includes(tabla)) throw new ErrorNegocio('Tabla no válida.');
   try {
     ctx.db.run(`UPDATE ${tabla} SET eliminado_en = NULL WHERE id = ?`, [id]);
   } catch (e: any) {

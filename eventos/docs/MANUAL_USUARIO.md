@@ -24,6 +24,18 @@ Acta, Invitación); se carga una plantilla. Complete destinatario, asunto y cont
 **Generar PDF**. Cada documento recibe un consecutivo por tipo y año (p. ej. `MEIF-OF-2026-001`) y queda en el listado
 para volver a verlo, imprimirlo o guardarlo. Anular un documento no libera su número.
 
+## 0b. Miembros de MEIF
+
+Menú **Miembros de MEIF › Nuevo miembro**: documento, nombres, apellidos, **cargo (opcional)**, área, profesión,
+fecha de nacimiento, teléfono, correo, dirección, municipio, fecha de ingreso, estado y observaciones.
+
+- Cargos disponibles: Presidente(a), Vicepresidente(a), Secretario(a), Tesorero(a), Fiscal, Vocal, Coordinador(a) de
+  área, Docente y Colaborador(a). Si el miembro no tiene cargo, deje el campo vacío.
+- Los cargos de la **junta directiva** (Presidente, Vicepresidente, Secretario, Tesorero y Fiscal) solo pueden estar
+  ocupados por un miembro activo a la vez. Arriba se ve la junta directiva y los cargos vacantes.
+- Si un miembro deja de participar, márquelo **Inactivo** o **Retirado** en vez de eliminarlo; así se conserva su historial.
+- Haga clic en un miembro para ver su ficha. **Directorio PDF / Excel** imprime el listado con el membrete.
+
 ## 1. Primer ingreso
 
 1. Abra **MEIF Eventos** desde el acceso directo del escritorio.

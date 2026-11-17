@@ -24,7 +24,15 @@ export interface Campo {
   min?: number; max?: number; maxLength?: number; ancho?: boolean; ayuda?: string; default?: string | number;
 }
 
-export type NombreModelo = 'eventos' | 'ponentes' | 'participantes';
+export type NombreModelo = 'eventos' | 'ponentes' | 'participantes' | 'miembros';
+
+/** Cargos de los miembros de MEIF (opcional: un miembro puede no tener cargo). */
+export const CARGOS_MIEMBRO = [
+  'Presidente(a)', 'Vicepresidente(a)', 'Secretario(a)', 'Tesorero(a)', 'Fiscal', 'Vocal', 'Coordinador(a) de área', 'Docente', 'Colaborador(a)',
+] as const;
+/** Cargos de la junta directiva: solo un miembro activo puede ocuparlos a la vez. */
+export const CARGOS_UNICOS = ['Presidente(a)', 'Vicepresidente(a)', 'Secretario(a)', 'Tesorero(a)', 'Fiscal'] as const;
+export const ESTADOS_MIEMBRO = ['Activo', 'Inactivo', 'Retirado'] as const;
 
 export const MODELOS: Record<NombreModelo, { singular: string; plural: string; campos: Campo[]; unico?: string }> = {
   eventos: {
@@ -69,6 +77,26 @@ export const MODELOS: Record<NombreModelo, { singular: string; plural: string; c
       { name: 'grado', label: 'Grado', type: 'select', options: GRADOS },
       { name: 'telefono', label: 'Teléfono', type: 'tel', maxLength: 30 },
       { name: 'correo', label: 'Correo electrónico', type: 'email', maxLength: 120 },
+    ],
+  },
+  miembros: {
+    singular: 'Miembro', plural: 'Miembros de MEIF', unico: 'identificacion',
+    campos: [
+      { name: 'tipo_documento', label: 'Tipo de documento', type: 'select', options: TIPOS_DOCUMENTO, required: true, default: 'CC' },
+      { name: 'identificacion', label: 'Número de identificación', type: 'text', required: true, maxLength: 20 },
+      { name: 'nombres', label: 'Nombres', type: 'text', required: true, maxLength: 80 },
+      { name: 'apellidos', label: 'Apellidos', type: 'text', required: true, maxLength: 80 },
+      { name: 'cargo', label: 'Cargo (opcional)', type: 'select', options: CARGOS_MIEMBRO, ayuda: 'Déjelo vacío si el miembro no tiene cargo.' },
+      { name: 'area', label: 'Área', type: 'select', options: AREAS },
+      { name: 'profesion', label: 'Profesión / ocupación', type: 'text', maxLength: 150 },
+      { name: 'fecha_nacimiento', label: 'Fecha de nacimiento', type: 'date' },
+      { name: 'telefono', label: 'Teléfono', type: 'tel', maxLength: 30 },
+      { name: 'correo', label: 'Correo electrónico', type: 'email', maxLength: 120 },
+      { name: 'direccion', label: 'Dirección', type: 'text', maxLength: 150 },
+      { name: 'municipio', label: 'Municipio', type: 'text', maxLength: 80, default: 'Sabanalarga' },
+      { name: 'fecha_ingreso', label: 'Fecha de ingreso a MEIF', type: 'date' },
+      { name: 'estado', label: 'Estado', type: 'select', options: ESTADOS_MIEMBRO, required: true, default: 'Activo' },
+      { name: 'observaciones', label: 'Observaciones', type: 'textarea', ancho: true },
     ],
   },
 };

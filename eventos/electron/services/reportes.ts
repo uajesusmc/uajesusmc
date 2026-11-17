@@ -6,6 +6,7 @@ import { auditar, DURACION_SQL, ErrorNegocio, hoy, redondear, requerirSesion, ty
 import { leerConfig, rutaImagen } from './config';
 import { listar as listarCertificados } from './certificados';
 import { horarioDocentes } from './organizacion';
+import { listar as listarDatos } from './datos';
 import { paraDocumentos } from './firmas';
 
 export interface Filtros { eventoId?: number | null; anio?: number | null; ponenteId?: number | null }
@@ -13,7 +14,7 @@ export interface Filtros { eventoId?: number | null; anio?: number | null; ponen
 const nombreEvento = (ctx: Contexto, id?: number | null) => (id ? ctx.db.valor<string>('SELECT nombre FROM eventos WHERE id = ?', [id]) : '');
 const requiereEvento = (f: Filtros) => { if (!f.eventoId) throw new ErrorNegocio('Seleccione el evento.'); };
 
-export const REPORTES: { id: string; nombre: string; filtro: 'evento' | 'anio'; construir: (ctx: Contexto, f: Filtros) => Reporte }[] = [
+export const REPORTES: { id: string; nombre: string; filtro: 'evento' | 'anio' | 'ninguno'; construir: (ctx: Contexto, f: Filtros) => Reporte }[] = [
   {
     id: 'eventos', nombre: 'Eventos del año', filtro: 'anio',
     construir: (ctx, f) => {
@@ -31,6 +32,23 @@ export const REPORTES: { id: string; nombre: string; filtro: 'evento' | 'anio'; 
           { key: 'nombre', label: 'Evento' }, { key: 'tipo', label: 'Tipo' }, { key: 'fecha_inicio', label: 'Inicio' }, { key: 'fecha_fin', label: 'Fin' },
           { key: 'lugar', label: 'Lugar' }, { key: 'estado', label: 'Estado' }, { key: 'inscritos', label: 'Inscritos', align: 'right' },
           { key: 'actividades', label: 'Actividades', align: 'right' }, { key: 'certificados', label: 'Certificados', align: 'right' },
+        ],
+      };
+    },
+  },
+  {
+    id: 'miembros', nombre: 'Directorio de miembros de MEIF', filtro: 'ninguno',
+    construir: (ctx) => {
+      const filas = listarDatos(ctx, 'miembros', {}).map((m, i) => ({
+        n: i + 1, documento: `${m.tipo_documento} ${m.identificacion}`, nombre: `${m.apellidos} ${m.nombres}`, cargo: m.cargo ?? '—',
+        area: m.area, profesion: m.profesion, telefono: m.telefono, correo: m.correo, ingreso: m.fecha_ingreso, estado: m.estado,
+      }));
+      return {
+        titulo: 'Directorio de miembros de MEIF', filas,
+        columnas: [
+          { key: 'n', label: '#', align: 'right' }, { key: 'nombre', label: 'Miembro' }, { key: 'cargo', label: 'Cargo' }, { key: 'documento', label: 'Documento' },
+          { key: 'area', label: 'Área' }, { key: 'profesion', label: 'Profesión' }, { key: 'telefono', label: 'Teléfono' }, { key: 'correo', label: 'Correo' },
+          { key: 'ingreso', label: 'Ingreso' }, { key: 'estado', label: 'Estado' },
         ],
       };
     },

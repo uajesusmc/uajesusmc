@@ -11,6 +11,7 @@ Saber 11°, ferias de la ciencia, seminarios y talleres.
 | Módulo | Para qué sirve |
 |---|---|
 | **Inicio** | Banner con la **foto inaugural** del evento (se cambia con un clic), indicadores del año, calendario de eventos y próximas actividades. |
+| **Miembros de MEIF** | Directorio de miembros con sus datos básicos y cargo opcional; junta directiva (un titular activo por cargo), ficha de cada miembro y directorio en PDF/Excel. |
 | **Eventos del año** | Crear eventos (tipo, fechas, lugar, cupo, estado). Cada evento tiene: **Resumen y foto**, **Agenda**, **Inscritos**, **Asistencia** y **Certificados**. |
 | **Organización y horario docente** | Aulas, cursillos del evento con su **docente** y **aula** asignados, programación semanal de sesiones con detección de cruces (docente o aula ocupados) y **horario de docentes** semanal, en pantalla, PDF y Excel. |
 | **Agenda** | Actividades (ceremonia, conferencias, talleres, competencias, recesos) con ponente, lugar y horario. **Detecta cruces** del ponente y del lugar, actividades duplicadas y fechas fuera del evento. |

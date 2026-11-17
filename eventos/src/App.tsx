@@ -1,6 +1,6 @@
 /** Estructura principal: menú lateral y páginas. */
 import { useEffect, useState, type ComponentType } from 'react';
-import { Award, FileSignature, PenLine, CalendarClock, CalendarHeart, FileBarChart, Home, KeyRound, Loader2, LogOut, Mic2, Settings, Users, type LucideIcon } from 'lucide-react';
+import { Award, Contact, FileSignature, PenLine, CalendarClock, CalendarHeart, FileBarChart, Home, KeyRound, Loader2, LogOut, Mic2, Settings, Users, type LucideIcon } from 'lucide-react';
 import { api } from './api';
 import { Logo } from './components/ui';
 import { MiFirma } from './components/firmas';
@@ -12,14 +12,16 @@ import { Eventos } from './pages/Eventos';
 import { Inicio } from './pages/Inicio';
 import { Organizacion } from './pages/Organizacion';
 import { Documentos } from './pages/Documentos';
+import { Miembros } from './pages/Miembros';
 import { Participantes, Ponentes } from './pages/Personas';
 import { Reportes } from './pages/Reportes';
 
 export type Ir = (pagina: Pagina, parametros?: any) => void;
-type Pagina = 'inicio' | 'eventos' | 'organizacion' | 'participantes' | 'ponentes' | 'certificados' | 'documentos' | 'reportes' | 'configuracion';
+type Pagina = 'inicio' | 'miembros' | 'eventos' | 'organizacion' | 'participantes' | 'ponentes' | 'certificados' | 'documentos' | 'reportes' | 'configuracion';
 
 const MENU: { id: Pagina; nombre: string; icono: LucideIcon; pagina: ComponentType<{ ir: Ir; parametros?: any }> }[] = [
   { id: 'inicio', nombre: 'Inicio', icono: Home, pagina: Inicio },
+  { id: 'miembros', nombre: 'Miembros de MEIF', icono: Contact, pagina: Miembros },
   { id: 'eventos', nombre: 'Eventos del año', icono: CalendarHeart, pagina: Eventos },
   { id: 'organizacion', nombre: 'Organización y horarios', icono: CalendarClock, pagina: Organizacion },
   { id: 'participantes', nombre: 'Participantes', icono: Users, pagina: Participantes },

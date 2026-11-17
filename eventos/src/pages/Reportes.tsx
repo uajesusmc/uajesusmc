@@ -36,7 +36,7 @@ export function Reportes() {
         <div className="col-flex">
           <Tarjeta titulo={def?.nombre}>
             <div className="fila">
-              {def?.filtro === 'anio' ? (
+              {def?.filtro === 'ninguno' ? <span className="suave">Este reporte no necesita filtros.</span> : def?.filtro === 'anio' ? (
                 <div className="campo"><label htmlFor="r-anio">Año</label><input id="r-anio" type="number" value={anio} onChange={(e) => setAnio(Number(e.target.value))} style={{ width: 120 }} /></div>
               ) : (
                 <div className="campo" style={{ minWidth: 340 }}><label htmlFor="r-ev">Evento</label>

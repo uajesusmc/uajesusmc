@@ -168,7 +168,7 @@ function Papelera() {
   const [lista, setLista] = useState<any[]>([]);
   const cargar = useCallback(() => { intentar(() => api('papelera.listar')).then((r) => r && setLista(r)); }, [intentar]);
   useEffect(cargar, [cargar]);
-  const tipos: Record<string, string> = { eventos: 'Evento', ponentes: 'Ponente', participantes: 'Participante', actividades: 'Actividad' };
+  const tipos: Record<string, string> = { eventos: 'Evento', ponentes: 'Ponente', participantes: 'Participante', actividades: 'Actividad', miembros: 'Miembro' };
   return (
     <Tabla filas={lista.map((r) => ({ ...r, k: `${r.tabla}${r.id}` }))} claveFila="k" vacio="La papelera está vacía." columnas={[
       { key: 'tabla', label: 'Tipo', render: (r) => <Insignia valor={tipos[r.tabla]} color="azul" /> }, { key: 'descripcion', label: 'Registro' },
