@@ -29,7 +29,8 @@ conservan al actualizar o reinstalar.
 
 ## Manuales
 
-- [Manual de usuario](docs/MANUAL_USUARIO.md)
+- **[Manual de usuario ilustrado (PDF)](docs/Manual-MEIF-Eventos.pdf)**
+- [Manual de usuario (texto)](docs/MANUAL_USUARIO.md)
 - [Manual de instalación](docs/MANUAL_INSTALACION.md)
 
 ![Horario de docentes con aula y cursillo](docs/horario-docentes.png)
