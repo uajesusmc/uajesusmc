@@ -1,0 +1,90 @@
+{
+  "name": "meif-sabanalarga",
+  "productName": "MEIF - SABANALARGA",
+  "version": "1.0.0",
+  "description": "Plataforma de gestión académica de cursillos de MEIF – Sabanalarga (Matemáticas, Estadística, Informática y Física)",
+  "author": "MEIF - SABANALARGA",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"npm:dev:electron\"",
+    "dev:electron": "tsc -p tsconfig.electron.json && wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "build": "tsc -p tsconfig.electron.json && tsc --noEmit -p tsconfig.json && vite build",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "e2e": "node tests/e2e.mjs",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "dist:dir": "npm run build && electron-builder --dir"
+  },
+  "build": {
+    "appId": "co.meif.sabanalarga",
+    "productName": "MEIF - SABANALARGA",
+    "copyright": "MEIF - SABANALARGA",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MEIF - SABANALARGA",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "MEIF-SABANALARGA-Setup-${version}.exe"
+    }
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.15.2",
+    "qrcode": "^1.5.4",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.1",
+    "@types/pdfkit": "^0.13.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^0.460.0",
+    "playwright-core": "^1.49.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.1"
+  }
+}
