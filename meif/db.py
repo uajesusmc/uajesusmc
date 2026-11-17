@@ -19,7 +19,7 @@ AREAS: dict[str, str] = {
 CALIFICACION_MINIMA = 6.0
 MAX_INSCRIPCIONES_POR_EE = 2  # primera y segunda inscripción
 TIPOS_EVALUACION = ("ordinario", "extraordinario", "título de suficiencia")
-ORDEN_AREAS = " ORDER BY instr('AFBG AFID AFD  AFT  AFEL', x.area || ' '), x.clave"
+ORDEN_AREAS = " ORDER BY instr('AFBG AFID AFD  AFT  AFEL ', x.area || ' '), x.clave"
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;

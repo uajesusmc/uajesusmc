@@ -5,6 +5,8 @@ Aplicación de escritorio para gestionar la trayectoria escolar bajo el
 estudiantes, experiencias educativas (EE), inscripciones, calificaciones,
 avance crediticio por área de formación y tutorías.
 
+![Trayectoria escolar](docs/captura.png)
+
 Hecha con Python + PySide6 (Qt) y una base de datos SQLite local.
 
 ## Funciones
