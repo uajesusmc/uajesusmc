@@ -30,16 +30,22 @@ export function generarReportePdf(destino: string, r: Reporte, config: Record<st
   const ancho = W - 72;
 
   // Ancho de columnas: proporcional al contenido (muestra de filas), con mínimo.
-  const pesos = r.columnas.map((c) => {
-    if (c.ancho) return c.ancho;
+  // El mínimo de cada columna es su palabra más larga (encabezado o contenido): nunca se parte una palabra.
+  const PAD = 8;
+  const muestra = r.filas.slice(0, 300);
+  const pesos: number[] = [];
+  const minimos: number[] = [];
+  for (const c of r.columnas) {
+    if (c.ancho) { pesos.push(c.ancho); minimos.push(c.ancho); continue; }
     doc.font('Helvetica-Bold').fontSize(8);
-    // Nunca partir una palabra del encabezado.
-    const palabra = Math.max(...texto(c.label).split(/\s+/).map((w) => doc.widthOfString(w))) + 8;
+    const palabraCab = Math.max(...texto(c.label).split(/\s+/).map((w) => doc.widthOfString(w))) + PAD;
     doc.font('Helvetica').fontSize(8);
-    const m = Math.max(...[c.label, ...r.filas.slice(0, 200).map((f) => fmt(f[c.key]))].map((s) => Math.min(doc.widthOfString(s), 220)));
-    return Math.max(m, palabra, 30);
-  });
-  const minimos = pesos.map((p, i) => (r.columnas[i].ancho ? p : Math.min(p, 70)));
+    const valores = muestra.map((f) => fmt(f[c.key]));
+    const completo = Math.max(0, ...valores.map((v) => Math.min(doc.widthOfString(v), 220))) + PAD;
+    const palabraCont = Math.min(110, Math.max(0, ...valores.flatMap((v) => v.split(/\s+/).map((w) => doc.widthOfString(w)))) + PAD);
+    pesos.push(Math.max(completo, palabraCab, 30));
+    minimos.push(Math.max(Math.min(completo, 70), palabraCab, palabraCont, 30));
+  }
   // Reparte el ancho: cada columna recibe su mínimo y el resto en proporción al contenido.
   const sumaMin = minimos.reduce((a, b) => a + b, 0);
   const extra = pesos.map((p, i) => p - minimos[i]);
@@ -94,7 +100,7 @@ export function generarReportePdf(destino: string, r: Reporte, config: Record<st
   if (!r.filas.length) {
     doc.font('Helvetica-Oblique').fontSize(9).fillColor('#4A5568').text('No hay registros para los filtros seleccionados.', 36, y + 10);
   }
-  r.filas.forEach((f, i) => dibujarFila(f, i));
+  r.filas.forEach((f, i) => dibujarFila(f, i, !!f._negrita));
   if (r.totales) dibujarFila(r.totales, 0, true);
 
   // Pie de página con numeración

@@ -25,7 +25,7 @@
 
 ## 4. Organización y horario de los docentes
 
-En el evento, pestaña **Organización y horario docente**:
+Desde el menú lateral **Organización y horarios** (elija el evento arriba) o, dentro del evento, en la pestaña **Organización y horario docente**:
 
 1. **Aulas**: registre las aulas y espacios (nombre, capacidad, ubicación, recursos). Son comunes a todos los eventos.
 2. **Cursillos, docentes y aulas › Nuevo cursillo**: nombre del cursillo, área, nivel o grupo,

@@ -1,6 +1,6 @@
 /** Estructura principal: menú lateral y páginas. */
 import { useState, type ComponentType } from 'react';
-import { Award, CalendarHeart, FileBarChart, Home, KeyRound, Loader2, LogOut, Mic2, Settings, Users, type LucideIcon } from 'lucide-react';
+import { Award, CalendarClock, CalendarHeart, FileBarChart, Home, KeyRound, Loader2, LogOut, Mic2, Settings, Users, type LucideIcon } from 'lucide-react';
 import { api } from './api';
 import { Logo } from './components/ui';
 import { useApp } from './estado';
@@ -9,15 +9,17 @@ import { Certificados } from './pages/Certificados';
 import { Configuracion } from './pages/Configuracion';
 import { Eventos } from './pages/Eventos';
 import { Inicio } from './pages/Inicio';
+import { Organizacion } from './pages/Organizacion';
 import { Participantes, Ponentes } from './pages/Personas';
 import { Reportes } from './pages/Reportes';
 
 export type Ir = (pagina: Pagina, parametros?: any) => void;
-type Pagina = 'inicio' | 'eventos' | 'participantes' | 'ponentes' | 'certificados' | 'reportes' | 'configuracion';
+type Pagina = 'inicio' | 'eventos' | 'organizacion' | 'participantes' | 'ponentes' | 'certificados' | 'reportes' | 'configuracion';
 
 const MENU: { id: Pagina; nombre: string; icono: LucideIcon; pagina: ComponentType<{ ir: Ir; parametros?: any }> }[] = [
   { id: 'inicio', nombre: 'Inicio', icono: Home, pagina: Inicio },
   { id: 'eventos', nombre: 'Eventos del año', icono: CalendarHeart, pagina: Eventos },
+  { id: 'organizacion', nombre: 'Organización y horarios', icono: CalendarClock, pagina: Organizacion },
   { id: 'participantes', nombre: 'Participantes', icono: Users, pagina: Participantes },
   { id: 'ponentes', nombre: 'Ponentes y docentes', icono: Mic2, pagina: Ponentes },
   { id: 'certificados', nombre: 'Certificados', icono: Award, pagina: Certificados },

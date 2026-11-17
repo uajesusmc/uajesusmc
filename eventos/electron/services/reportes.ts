@@ -62,13 +62,13 @@ export const REPORTES: { id: string; nombre: string; filtro: 'evento' | 'anio'; 
       const filas: Record<string, any>[] = [];
       let actual = '';
       let subtotal = 0;
-      const cerrar = () => { if (actual) filas.push({ docente: `Total ${actual}`, horas: redondear(subtotal) }); };
+      const cerrar = () => { if (actual) filas.push({ docente: `Total ${actual}`, horas: redondear(subtotal), _negrita: true }); };
       for (const s of sesiones) {
         if (s.docente !== actual) { cerrar(); actual = s.docente; subtotal = 0; }
         if (s.tipo !== 'Receso') subtotal += s.horas;
         filas.push({
           docente: s.docente, cursillo: s.cursillo, nivel: s.nivel, aula: s.aula, dia: dias[new Date(s.fecha + 'T12:00').getDay()],
-          fecha: s.fecha, hora: `${s.hora_inicio} – ${s.hora_fin}`, horas: s.horas,
+          fecha: s.fecha.split('-').reverse().join('/'), hora: `${s.hora_inicio}–${s.hora_fin}`, horas: s.horas,
         });
       }
       cerrar();

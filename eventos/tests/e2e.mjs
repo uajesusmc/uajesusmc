@@ -185,6 +185,16 @@ try {
   await w.locator('.bloque-horario', { hasText: 'Física: cinemática' }).getByText('Sala de informática').waitFor();
   await captura('03d-horario-docentes');
   paso('Organización: aulas, cursillos con docente y aula, cruce detectado y horario de docentes');
+  // Acceso directo desde el menú lateral
+  await ir('organizacion');
+  await w.getByLabel('Evento', { exact: true }).locator('option:checked', { hasText: 'Olimpiada' }).waitFor({ state: 'attached' });
+  await w.getByRole('tab', { name: 'Horario de docentes' }).click();
+  await w.locator('.bloque-horario', { hasText: 'Geometría' }).getByText('Sala de informática').waitFor();
+  await captura('03e-menu-organizacion');
+  paso('Menú «Organización y horarios»: horario de docentes con aula y cursillo');
+  await ir('eventos');
+  await w.locator('.tarjeta-evento').first().click();
+  await w.getByRole('heading', { name: /Olimpiada de Matemáticas/ }).waitFor();
 
   await w.getByRole('tab', { name: /Inscritos/ }).click();
   eleccion(excel);

@@ -271,3 +271,40 @@ export function OrganizacionEvento({ evento, onCambio }: { evento: any; onCambio
     </>
   );
 }
+
+/** Página del menú «Organización del evento»: elegir el evento y organizar cursillos, docentes, aulas y horario. */
+export function Organizacion({ parametros }: { parametros?: any }) {
+  const { intentar } = useApp();
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [id, setId] = useState<number | ''>(parametros?.eventoId ?? '');
+  const [k, setK] = useState(0);
+  useEffect(() => {
+    intentar(() => api('datos.listar', { modelo: 'eventos', filtro: {} })).then((r) => {
+      if (!r) return;
+      setEventos(r);
+      // Por defecto: el evento en curso o el próximo; si no, el más reciente.
+      if (!id && r.length) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const actual = r.find((e: any) => e.estado === 'En curso') ?? [...r].reverse().find((e: any) => e.fecha_fin >= hoy && e.estado !== 'Cancelado') ?? r[0];
+        setId(actual.id);
+      }
+    });
+  }, [intentar, k]); // eslint-disable-line react-hooks/exhaustive-deps
+  const evento = eventos.find((e) => e.id === id);
+  return (
+    <>
+      <div className="pagina-cab"><div><h1>Organización del evento</h1>
+        <p>Cursillos a dictar, docente y aula de cada uno, y el horario de los docentes.</p></div></div>
+      <div className="barra-filtros">
+        <div className="campo" style={{ minWidth: 380 }}><label htmlFor="o-evento">Evento</label>
+          <select id="o-evento" value={id} onChange={(e) => setId(e.target.value ? Number(e.target.value) : '')}>
+            <option value="">— Seleccione el evento —</option>
+            {eventos.map((e) => <option key={e.id} value={e.id}>{e.anio} · {e.nombre} ({e.estado})</option>)}
+          </select></div>
+        {evento && <span className="suave">{fmtFecha(evento.fecha_inicio)} – {fmtFecha(evento.fecha_fin)}{evento.lugar ? ` · ${evento.lugar}` : ''}</span>}
+      </div>
+      {evento ? <OrganizacionEvento key={evento.id} evento={evento} onCambio={() => setK((x) => x + 1)} />
+        : <Vacio texto={eventos.length ? 'Seleccione un evento para organizarlo.' : 'Primero cree un evento en «Eventos del año».'} icono={<GraduationCap size={36} />} />}
+    </>
+  );
+}
