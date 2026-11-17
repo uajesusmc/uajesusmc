@@ -1,6 +1,6 @@
 // Carga, desde el paquete extraído, todos los módulos que usa el proceso principal.
 const path = require('path');
-const raiz = process.argv[2];
+const raiz = path.resolve(process.argv[2]);
 const Module = require('module');
 const req = Module.createRequire(path.join(raiz, 'dist-electron/electron/main.js'));
 let fallos = 0;
