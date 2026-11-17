@@ -29,10 +29,12 @@ jobs:
           name: MEIF-Eventos-instalador
           path: eventos/release/*.exe
       - name: Publicar descarga (Release)
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: MEIF Eventos ${{ github.ref_name }}
+          tag_name: eventos-v1.0.0
+          target_commitish: ${{ github.sha }}
+          name: MEIF Eventos 1.0.0 – Instalador para Windows
+          make_latest: true
           body: |
             Instalador de **MEIF Eventos** para Windows 10/11 (64 bits). Funciona sin internet.
 
